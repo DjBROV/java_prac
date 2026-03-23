@@ -38,7 +38,7 @@ public class Products implements CommonEntity<Long> {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "size")
-    private SizeType size;
+    private SizeType product_size;
 
     @Column(name = "units_for_one")
     private Integer unitsForOne;
