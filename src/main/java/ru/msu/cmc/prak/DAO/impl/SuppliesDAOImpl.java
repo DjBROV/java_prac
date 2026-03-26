@@ -1,12 +1,16 @@
 package ru.msu.cmc.prak.DAO.impl;
 
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.stereotype.Repository;
 import ru.msu.cmc.prak.DAO.SuppliesDAO;
 import ru.msu.cmc.prak.models.*;
 
-import javax.persistence.criteria.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -84,10 +88,10 @@ public class SuppliesDAOImpl extends CommonDAOImpl<Supplies, Long> implements Su
                 predicates.add(builder.like(root.get("provider").get("name"), likeExpr(filter.getProviderName())));
             }
             if (filter.getAmountFrom() != null) {
-                predicates.add(builder.greaterThanOrEqualTo(root.get("amount"), filter.getAmountFrom()));
+                predicates.add(builder.greaterThanOrEqualTo(root.get("amount"), BigDecimal.valueOf(filter.getAmountFrom())));
             }
             if (filter.getAmountTo() != null) {
-                predicates.add(builder.lessThanOrEqualTo(root.get("amount"), filter.getAmountTo()));
+                predicates.add(builder.lessThanOrEqualTo(root.get("amount"), BigDecimal.valueOf(filter.getAmountTo())));
             }
             if (filter.getTimeFrom() != null) {
                 predicates.add(builder.greaterThanOrEqualTo(root.get("time"), filter.getTimeFrom()));
@@ -109,7 +113,6 @@ public class SuppliesDAOImpl extends CommonDAOImpl<Supplies, Long> implements Su
 
     @Override
     public Providers getProvider(Supplies supply) {
-        // просто возвращаем объект из связи
         return supply.getProvider();
     }
 

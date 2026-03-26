@@ -1,37 +1,35 @@
 package ru.msu.cmc.prak.DAO.impl;
 
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.criteria.CriteriaQuery;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
-import org.springframework.stereotype.Repository;
 import ru.msu.cmc.prak.DAO.CommonDAO;
 import ru.msu.cmc.prak.models.CommonEntity;
 
-import javax.persistence.criteria.CriteriaQuery;
 import java.io.Serializable;
 import java.util.Collection;
 
-@Repository
-public abstract class CommonDAOImpl<T extends CommonEntity<ID>, ID extends Serializable> implements CommonDAO<T, ID> {
+public abstract class CommonDAOImpl<T extends CommonEntity<ID>, ID extends Serializable>
+        implements CommonDAO<T, ID> {
 
     protected SessionFactory sessionFactory;
+    protected final Class<T> persistentClass;
 
-    protected Class<T> persistentClass;
-
-    public CommonDAOImpl(Class<T> entityClass){
+    public CommonDAOImpl(Class<T> entityClass) {
         this.persistentClass = entityClass;
     }
 
     @Autowired
-    public void setSessionFactory(LocalSessionFactoryBean sessionFactory) {
-        this.sessionFactory = sessionFactory.getObject();
+    public void setEntityManagerFactory(EntityManagerFactory entityManagerFactory) {
+        this.sessionFactory = entityManagerFactory.unwrap(SessionFactory.class);
     }
 
     @Override
     public T getById(ID id) {
         try (Session session = sessionFactory.openSession()) {
-            return session.get(persistentClass, id);
+            return session.find(persistentClass, id);
         }
     }
 
@@ -47,51 +45,89 @@ public abstract class CommonDAOImpl<T extends CommonEntity<ID>, ID extends Seria
     @Override
     public void save(T entity) {
         try (Session session = sessionFactory.openSession()) {
-            if (entity.getId() != null) {
-                entity.setId(null);
+            var tx = session.beginTransaction();
+            try {
+                session.persist(entity);
+                tx.commit();
+            } catch (Exception e) {
+                if (tx != null && tx.isActive()) {
+                    tx.rollback();
+                }
+                throw e;
             }
-            session.beginTransaction();
-            session.saveOrUpdate(entity);
-            session.getTransaction().commit();
         }
     }
 
     @Override
     public void saveCollection(Collection<T> entities) {
         try (Session session = sessionFactory.openSession()) {
-            session.beginTransaction();
-            for (T entity : entities) {
-                this.save(entity);
+            var tx = session.beginTransaction();
+            try {
+                for (T entity : entities) {
+                    session.persist(entity);
+                }
+                tx.commit();
+            } catch (Exception e) {
+                if (tx != null && tx.isActive()) {
+                    tx.rollback();
+                }
+                throw e;
             }
-            session.getTransaction().commit();
         }
     }
 
     @Override
     public void update(T entity) {
         try (Session session = sessionFactory.openSession()) {
-            session.beginTransaction();
-            session.update(entity);
-            session.getTransaction().commit();
+            var tx = session.beginTransaction();
+            try {
+                session.merge(entity);
+                tx.commit();
+            } catch (Exception e) {
+                if (tx != null && tx.isActive()) {
+                    tx.rollback();
+                }
+                throw e;
+            }
         }
     }
 
     @Override
     public void delete(T entity) {
         try (Session session = sessionFactory.openSession()) {
-            session.beginTransaction();
-            session.delete(entity);
-            session.getTransaction().commit();
+            var tx = session.beginTransaction();
+            try {
+                T managedEntity = entity;
+                if (!session.contains(entity)) {
+                    managedEntity = session.merge(entity);
+                }
+                session.remove(managedEntity);
+                tx.commit();
+            } catch (Exception e) {
+                if (tx != null && tx.isActive()) {
+                    tx.rollback();
+                }
+                throw e;
+            }
         }
     }
 
     @Override
     public void deleteById(ID id) {
         try (Session session = sessionFactory.openSession()) {
-            session.beginTransaction();
-            T entity = getById(id);
-            session.delete(entity);
-            session.getTransaction().commit();
+            var tx = session.beginTransaction();
+            try {
+                T entity = session.find(persistentClass, id);
+                if (entity != null) {
+                    session.remove(entity);
+                }
+                tx.commit();
+            } catch (Exception e) {
+                if (tx != null && tx.isActive()) {
+                    tx.rollback();
+                }
+                throw e;
+            }
         }
     }
 }

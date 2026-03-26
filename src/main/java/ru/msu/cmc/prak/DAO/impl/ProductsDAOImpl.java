@@ -1,13 +1,15 @@
 package ru.msu.cmc.prak.DAO.impl;
 
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.stereotype.Repository;
 import ru.msu.cmc.prak.DAO.ProductsDAO;
 import ru.msu.cmc.prak.models.*;
 
-import javax.persistence.criteria.*;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,12 +33,11 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
     @Override
     public Products getSingleByName(String name) {
         List<Products> candidates = getAllByName(name);
-        return candidates.size() == 1 ? candidates.get(0) : null;
+        return candidates.size() == 1 ? candidates.getFirst() : null;
     }
 
     @Override
     public List<Products> getByCategoryId(Long categoryId) {
-        // categoryId не нужен, используем объект категории, но для совместимости можно сделать через join
         try (Session session = sessionFactory.openSession()) {
             Query<Products> query = session.createQuery(
                     "FROM Products WHERE category.id = :catId", Products.class);
@@ -81,7 +82,6 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
                 predicates.add(builder.like(root.get("name"), likeExpr(filter.getName())));
             }
             if (filter.getCategoryId() != null) {
-                // фильтр по ID категории
                 predicates.add(builder.equal(root.get("category").get("id"), filter.getCategoryId()));
             }
             if (filter.getCategoryName() != null) {
@@ -91,7 +91,7 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
                 predicates.add(builder.equal(root.get("unit"), filter.getUnit()));
             }
             if (filter.getSize() != null) {
-                predicates.add(builder.equal(root.get("size"), filter.getSize()));
+                predicates.add(builder.equal(root.get("product_size"), filter.getSize()));
             }
             if (filter.getMinStorageLife() != null) {
                 predicates.add(builder.greaterThanOrEqualTo(root.get("storageLife"), filter.getMinStorageLife()));
@@ -100,7 +100,7 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
                 predicates.add(builder.lessThanOrEqualTo(root.get("storageLife"), filter.getMaxStorageLife()));
             }
             if (Boolean.TRUE.equals(filter.getLarge())) {
-                predicates.add(builder.equal(root.get("size"), SizeType.large));
+                predicates.add(builder.equal(root.get("product_size"), SizeType.large));
             }
 
             if (!predicates.isEmpty()) {
@@ -113,7 +113,6 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
 
     @Override
     public List<Supplies> getSuppliesForProduct(Products product) {
-        // Используем обратную связь напрямую, но чтобы избежать LazyInitializationException, лучше запрос
         try (Session session = sessionFactory.openSession()) {
             Query<Supplies> query = session.createQuery(
                     "FROM Supplies WHERE product = :prod", Supplies.class);
@@ -144,7 +143,6 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
 
     @Override
     public ProductCategories getCategory(Products product) {
-        // просто возвращаем категорию, она уже загружена, но можно и через запрос
         return product.getCategory();
     }
 

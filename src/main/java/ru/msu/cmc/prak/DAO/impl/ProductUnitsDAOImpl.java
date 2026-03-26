@@ -1,12 +1,16 @@
 package ru.msu.cmc.prak.DAO.impl;
 
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.stereotype.Repository;
 import ru.msu.cmc.prak.DAO.ProductUnitsDAO;
 import ru.msu.cmc.prak.models.*;
 
-import javax.persistence.criteria.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -85,7 +89,6 @@ public class ProductUnitsDAOImpl extends CommonDAOImpl<ProductUnits, Long> imple
                 predicates.add(builder.equal(root.get("supply").get("id"), filter.getSupplyId()));
             }
             if (filter.getSupplierId() != null) {
-                // фильтр по поставщику: нужно добраться до supply.provider.id
                 predicates.add(builder.equal(root.get("supply").get("provider").get("id"), filter.getSupplierId()));
             }
             if (filter.getShelfNum() != null) {
@@ -95,10 +98,10 @@ public class ProductUnitsDAOImpl extends CommonDAOImpl<ProductUnits, Long> imple
                 predicates.add(builder.equal(root.get("shelf").get("roomNum"), filter.getRoomNum()));
             }
             if (filter.getMinAmount() != null) {
-                predicates.add(builder.greaterThanOrEqualTo(root.get("amount"), filter.getMinAmount()));
+                predicates.add(builder.greaterThanOrEqualTo(root.get("amount"), BigDecimal.valueOf(filter.getMinAmount())));
             }
             if (filter.getMaxAmount() != null) {
-                predicates.add(builder.lessThanOrEqualTo(root.get("amount"), filter.getMaxAmount()));
+                predicates.add(builder.lessThanOrEqualTo(root.get("amount"), BigDecimal.valueOf(filter.getMaxAmount())));
             }
             if (filter.getArrivalFrom() != null) {
                 predicates.add(builder.greaterThanOrEqualTo(root.get("arrival"), filter.getArrivalFrom()));

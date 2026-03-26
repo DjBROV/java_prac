@@ -23,10 +23,10 @@ CREATE TABLE products (
                           category_id BIGINT NOT NULL REFERENCES product_categories(category_id),
                           name TEXT NOT NULL,
                           description TEXT,
-                          unit  units_type, --  единица измерения
-                          size  size_type, --  размер
+                          unit  VARCHAR(255), --  единица измерения
+                          size  VARCHAR(255), --  размер
                           units_for_one INTEGER,
-                          storage_life INTERVAL
+                          storage_life NUMERIC(21,0)
 );
 
 -- Таблица поставщиков
@@ -86,3 +86,14 @@ CREATE TABLE product_units (
                                supply_id BIGINT REFERENCES supplies(supply_id),
                                order_id BIGINT REFERENCES orders(order_id)
 );
+
+drop table products CASCADE ;
+drop table consumers CASCADE ;
+drop table orders CASCADE;
+drop table product_categories CASCADE;
+drop table product_units CASCADE;
+drop table providers CASCADE;
+drop table shelfs_workload CASCADE;
+drop table supplies CASCADE;
+
+

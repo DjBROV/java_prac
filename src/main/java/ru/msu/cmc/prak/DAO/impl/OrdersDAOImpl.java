@@ -1,12 +1,16 @@
 package ru.msu.cmc.prak.DAO.impl;
 
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.stereotype.Repository;
 import ru.msu.cmc.prak.DAO.OrdersDAO;
 import ru.msu.cmc.prak.models.*;
 
-import javax.persistence.criteria.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -84,10 +88,10 @@ public class OrdersDAOImpl extends CommonDAOImpl<Orders, Long> implements Orders
                 predicates.add(builder.like(root.get("consumer").get("name"), likeExpr(filter.getConsumerName())));
             }
             if (filter.getAmountFrom() != null) {
-                predicates.add(builder.greaterThanOrEqualTo(root.get("amount"), filter.getAmountFrom()));
+                predicates.add(builder.greaterThanOrEqualTo(root.get("amount"), BigDecimal.valueOf(filter.getAmountFrom())));
             }
             if (filter.getAmountTo() != null) {
-                predicates.add(builder.lessThanOrEqualTo(root.get("amount"), filter.getAmountTo()));
+                predicates.add(builder.lessThanOrEqualTo(root.get("amount"), BigDecimal.valueOf(filter.getAmountTo())));
             }
             if (filter.getTimeFrom() != null) {
                 predicates.add(builder.greaterThanOrEqualTo(root.get("time"), filter.getTimeFrom()));

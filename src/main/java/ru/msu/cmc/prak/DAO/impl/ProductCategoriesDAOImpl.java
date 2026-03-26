@@ -1,5 +1,9 @@
 package ru.msu.cmc.prak.DAO.impl;
 
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.stereotype.Repository;
@@ -7,10 +11,6 @@ import ru.msu.cmc.prak.DAO.ProductCategoriesDAO;
 import ru.msu.cmc.prak.models.ProductCategories;
 import ru.msu.cmc.prak.models.Products;
 
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,7 +25,7 @@ public class ProductCategoriesDAOImpl extends CommonDAOImpl<ProductCategories, L
     public List<ProductCategories> getAllByName(String name) {
         try (Session session = sessionFactory.openSession()) {
             Query<ProductCategories> query = session.createQuery(
-                    "FROM ProductCategories WHERE name LIKE :name", ProductCategories.class);
+                    "FROM ProductCategories WHERE lower(name) LIKE lower(:name)", ProductCategories.class);
             query.setParameter("name", likeExpr(name));
             return query.getResultList();
         }
@@ -34,7 +34,7 @@ public class ProductCategoriesDAOImpl extends CommonDAOImpl<ProductCategories, L
     @Override
     public ProductCategories getSingleByName(String name) {
         List<ProductCategories> candidates = getAllByName(name);
-        return candidates.size() == 1 ? candidates.get(0) : null;
+        return candidates.size() == 1 ? candidates.getFirst() : null;
     }
 
     @Override
@@ -59,7 +59,6 @@ public class ProductCategoriesDAOImpl extends CommonDAOImpl<ProductCategories, L
 
     @Override
     public List<Products> getProductsInCategory(ProductCategories category) {
-        // Используем связь @OneToMany, достаточно просто обратиться к коллекции, но для ленивой загрузки лучше запрос
         try (Session session = sessionFactory.openSession()) {
             Query<Products> query = session.createQuery(
                     "FROM Products WHERE category = :cat", Products.class);
@@ -72,7 +71,7 @@ public class ProductCategoriesDAOImpl extends CommonDAOImpl<ProductCategories, L
     public long countProductsInCategory(ProductCategories category) {
         try (Session session = sessionFactory.openSession()) {
             Query<Long> query = session.createQuery(
-                    "SELECT COUNT(p) FROM Products p WHERE category = :cat", Long.class);
+                    "SELECT COUNT(p) FROM Products p WHERE p.category = :cat", Long.class);
             query.setParameter("cat", category);
             return query.getSingleResult();
         }
