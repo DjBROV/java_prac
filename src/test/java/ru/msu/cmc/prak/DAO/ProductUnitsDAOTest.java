@@ -1,267 +1,275 @@
 package ru.msu.cmc.prak.DAO;
 
-import jakarta.persistence.EntityManagerFactory;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
 import ru.msu.cmc.prak.models.*;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@TestPropertySource(locations = "classpath:application.properties")
-public class ProductUnitsDAOTest {
-
-    @Autowired
-    private ProductUnitsDAO productUnitsDAO;
-    @Autowired
-    private ProductsDAO productsDAO;
-    @Autowired
-    private ProductCategoriesDAO productCategoriesDAO;
-    @Autowired
-    private SuppliesDAO suppliesDAO;
-    @Autowired
-    private ProvidersDAO providersDAO;
-    @Autowired
-    private ShelfsWorkloadDAO shelfsWorkloadDAO;
-    @Autowired
-    private OrdersDAO ordersDAO;
-    @Autowired
-    private ConsumersDAO consumersDAO;
-    @Autowired
-    private EntityManagerFactory entityManagerFactory;
+public class ProductUnitsDAOTest extends AbstractDAOTest {
 
     @Test
     void testGetByProductId() {
-        Fixture f = prepareFixture();
-        saveUnit(1L, f.product, f.supply, f.shelf, null, LocalDateTime.of(2026, 1, 1, 10, 0), BigDecimal.valueOf(2));
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products p1 = saveProduct(1L, category, "Ноутбук");
+        Products p2 = saveProduct(2L, category, "Мышь");
+        Providers provider = saveProvider(1L, "ООО Альфа");
+        Supplies supply1 = saveSupply(1L, p1, provider, BigDecimal.TEN, LocalDateTime.now(), false);
+        Supplies supply2 = saveSupply(2L, p2, provider, BigDecimal.TEN, LocalDateTime.now(), false);
+        ShelfsWorkload shelf = saveShelf(1L, 1, 0);
 
-        List<ProductUnits> found = productUnitsDAO.getByProductId(f.product.getId());
-        assertEquals(1, found.size());
+        saveUnit(1L, p1, LocalDateTime.now(), BigDecimal.ONE, shelf, supply1, null);
+        saveUnit(2L, p2, LocalDateTime.now(), BigDecimal.ONE, shelf, supply2, null);
+
+        assertEquals(1, productUnitsDAO.getByProductId(1L).size());
     }
 
     @Test
     void testGetByShelfNum() {
-        Fixture f = prepareFixture();
-        saveUnit(1L, f.product, f.supply, f.shelf, null, LocalDateTime.of(2026, 1, 1, 10, 0), BigDecimal.valueOf(2));
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Providers provider = saveProvider(1L, "ООО Альфа");
+        Supplies supply = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
+        ShelfsWorkload s1 = saveShelf(1L, 1, 0);
+        ShelfsWorkload s2 = saveShelf(2L, 1, 0);
 
-        List<ProductUnits> found = productUnitsDAO.getByShelfNum(f.shelf.getId());
-        assertEquals(1, found.size());
+        saveUnit(1L, product, LocalDateTime.now(), BigDecimal.ONE, s1, supply, null);
+        saveUnit(2L, product, LocalDateTime.now(), BigDecimal.ONE, s2, supply, null);
+
+        assertEquals(1, productUnitsDAO.getByShelfNum(1L).size());
     }
 
     @Test
     void testGetBySupplyId() {
-        Fixture f = prepareFixture();
-        saveUnit(1L, f.product, f.supply, f.shelf, null, LocalDateTime.of(2026, 1, 1, 10, 0), BigDecimal.valueOf(2));
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Providers provider = saveProvider(1L, "ООО Альфа");
+        Supplies s1 = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
+        Supplies s2 = saveSupply(2L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
+        ShelfsWorkload shelf = saveShelf(1L, 1, 0);
 
-        List<ProductUnits> found = productUnitsDAO.getBySupplyId(f.supply.getId());
-        assertEquals(1, found.size());
+        saveUnit(1L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, s1, null);
+        saveUnit(2L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, s2, null);
+
+        assertEquals(1, productUnitsDAO.getBySupplyId(1L).size());
     }
 
     @Test
     void testGetByOrderId() {
-        Fixture f = prepareFixture();
-        saveUnit(1L, f.product, f.supply, f.shelf, f.order, LocalDateTime.of(2026, 1, 1, 10, 0), BigDecimal.valueOf(2));
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Consumers consumer = saveConsumer(1L, "Иван");
+        Providers provider = saveProvider(1L, "ООО Альфа");
+        Supplies supply = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
+        Orders o1 = saveOrder(1L, product, consumer, BigDecimal.ONE, LocalDateTime.now(), false);
+        Orders o2 = saveOrder(2L, product, consumer, BigDecimal.ONE, LocalDateTime.now(), false);
+        ShelfsWorkload shelf = saveShelf(1L, 1, 0);
 
-        List<ProductUnits> found = productUnitsDAO.getByOrderId(f.order.getId());
-        assertEquals(1, found.size());
+        saveUnit(1L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, supply, o1);
+        saveUnit(2L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, supply, o2);
+
+        assertEquals(1, productUnitsDAO.getByOrderId(1L).size());
     }
 
     @Test
     void testGetByArrivalRange() {
-        Fixture f = prepareFixture();
-        saveUnit(1L, f.product, f.supply, f.shelf, null, LocalDateTime.of(2026, 1, 10, 10, 0), BigDecimal.valueOf(2));
-        saveUnit(2L, f.product, f.supply, f.shelf, null, LocalDateTime.of(2026, 2, 10, 10, 0), BigDecimal.valueOf(2));
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Providers provider = saveProvider(1L, "ООО Альфа");
+        Supplies supply = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
+        ShelfsWorkload shelf = saveShelf(1L, 1, 0);
+
+        saveUnit(1L, product, LocalDateTime.of(2025, 1, 10, 10, 0), BigDecimal.ONE, shelf, supply, null);
+        saveUnit(2L, product, LocalDateTime.of(2025, 2, 10, 10, 0), BigDecimal.ONE, shelf, supply, null);
 
         List<ProductUnits> found = productUnitsDAO.getByArrivalRange(
-                LocalDateTime.of(2026, 1, 1, 0, 0),
-                LocalDateTime.of(2026, 1, 31, 23, 59)
+                LocalDateTime.of(2025, 1, 1, 0, 0),
+                LocalDateTime.of(2025, 1, 31, 23, 59)
         );
         assertEquals(1, found.size());
     }
 
     @Test
-    void testGetByFilter() {
-        Fixture f = prepareFixture();
-        saveUnit(1L, f.product, f.supply, f.shelf, null, LocalDateTime.of(2026, 1, 10, 10, 0), BigDecimal.valueOf(5));
+    void testGetByFilterAllNullsReservedNullBranchAndBdNullBranch() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Providers provider = saveProvider(1L, "ООО Альфа");
+        Supplies supply = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
+        ShelfsWorkload shelf = saveShelf(1L, 1, 0);
+
+        saveUnit(1L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, supply, null);
+        saveUnit(2L, product, LocalDateTime.now(), BigDecimal.TWO, shelf, supply, null);
+
+        ProductUnitsDAO.Filter filter = ProductUnitsDAO.getFilterBuilder().build();
+        assertEquals(2, productUnitsDAO.getByFilter(filter).size());
+    }
+
+    @Test
+    void testGetByFilterReservedFalseBranch() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Consumers consumer = saveConsumer(1L, "Иван");
+        Providers provider = saveProvider(1L, "ООО Альфа");
+        Supplies supply = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
+        Orders order = saveOrder(1L, product, consumer, BigDecimal.ONE, LocalDateTime.now(), false);
+        ShelfsWorkload shelf = saveShelf(1L, 10, 0);
+
+        saveUnit(1L, product, LocalDateTime.of(2025, 1, 1, 10, 0), BigDecimal.valueOf(3), shelf, supply, null);
+        saveUnit(2L, product, LocalDateTime.of(2025, 1, 2, 10, 0), BigDecimal.valueOf(5), shelf, supply, order);
 
         ProductUnitsDAO.Filter filter = ProductUnitsDAO.getFilterBuilder()
-                .productId(f.product.getId())
-                .supplyId(f.supply.getId())
-                .supplierId(f.provider.getId())
-                .shelfNum(f.shelf.getId())
-                .roomNum(f.shelf.getRoomNum())
+                .productId(1L)
+                .supplyId(1L)
+                .supplierId(1L)
+                .shelfNum(1L)
+                .roomNum(10)
                 .minAmount(1)
-                .maxAmount(10)
-                .arrivalFrom(LocalDateTime.of(2026, 1, 1, 0, 0))
-                .arrivalTo(LocalDateTime.of(2026, 1, 31, 23, 59))
+                .maxAmount(4)
+                .arrivalFrom(LocalDateTime.of(2025, 1, 1, 0, 0))
+                .arrivalTo(LocalDateTime.of(2025, 1, 1, 23, 59))
                 .reserved(false)
                 .build();
 
         List<ProductUnits> found = productUnitsDAO.getByFilter(filter);
         assertEquals(1, found.size());
-    }
-
-    @Test
-    void testGetProduct() {
-        Fixture f = prepareFixture();
-        ProductUnits unit = saveUnit(1L, f.product, f.supply, f.shelf, null, LocalDateTime.of(2026, 1, 10, 10, 0), BigDecimal.valueOf(5));
-
-        Products found = productUnitsDAO.getProduct(unit);
-        assertNotNull(found);
-        assertEquals(f.product.getId(), found.getId());
-    }
-
-    @Test
-    void testGetShelf() {
-        Fixture f = prepareFixture();
-        ProductUnits unit = saveUnit(1L, f.product, f.supply, f.shelf, null, LocalDateTime.of(2026, 1, 10, 10, 0), BigDecimal.valueOf(5));
-
-        ShelfsWorkload found = productUnitsDAO.getShelf(unit);
-        assertNotNull(found);
-        assertEquals(f.shelf.getId(), found.getId());
-    }
-
-    @Test
-    void testGetSupply() {
-        Fixture f = prepareFixture();
-        ProductUnits unit = saveUnit(1L, f.product, f.supply, f.shelf, null, LocalDateTime.of(2026, 1, 10, 10, 0), BigDecimal.valueOf(5));
-
-        Supplies found = productUnitsDAO.getSupply(unit);
-        assertNotNull(found);
-        assertEquals(f.supply.getId(), found.getId());
-    }
-
-    @Test
-    void testGetOrder() {
-        Fixture f = prepareFixture();
-        ProductUnits unit = saveUnit(1L, f.product, f.supply, f.shelf, f.order, LocalDateTime.of(2026, 1, 10, 10, 0), BigDecimal.valueOf(5));
-
-        Orders found = productUnitsDAO.getOrder(unit);
-        assertNotNull(found);
-        assertEquals(f.order.getId(), found.getId());
-    }
-
-    @Test
-    void testGetFreeUnits() {
-        Fixture f = prepareFixture();
-        saveUnit(1L, f.product, f.supply, f.shelf, null, LocalDateTime.of(2026, 1, 10, 10, 0), BigDecimal.valueOf(5));
-        saveUnit(2L, f.product, f.supply, f.shelf, f.order, LocalDateTime.of(2026, 1, 11, 10, 0), BigDecimal.valueOf(5));
-
-        List<ProductUnits> found = productUnitsDAO.getFreeUnits();
-        assertEquals(1, found.size());
         assertNull(found.getFirst().getOrder());
     }
 
     @Test
-    void testGetReservedUnits() {
-        Fixture f = prepareFixture();
-        saveUnit(1L, f.product, f.supply, f.shelf, null, LocalDateTime.of(2026, 1, 10, 10, 0), BigDecimal.valueOf(5));
-        saveUnit(2L, f.product, f.supply, f.shelf, f.order, LocalDateTime.of(2026, 1, 11, 10, 0), BigDecimal.valueOf(5));
+    void testGetByFilterReservedTrueBranch() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Consumers consumer = saveConsumer(1L, "Иван");
+        Providers provider = saveProvider(1L, "ООО Альфа");
+        Supplies supply = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
+        Orders order = saveOrder(1L, product, consumer, BigDecimal.ONE, LocalDateTime.now(), false);
+        ShelfsWorkload shelf = saveShelf(1L, 10, 0);
 
-        List<ProductUnits> found = productUnitsDAO.getReservedUnits();
+        saveUnit(1L, product, LocalDateTime.of(2025, 1, 1, 10, 0), BigDecimal.valueOf(3), shelf, supply, order);
+
+        ProductUnitsDAO.Filter filter = ProductUnitsDAO.getFilterBuilder()
+                .reserved(true)
+                .build();
+
+        List<ProductUnits> found = productUnitsDAO.getByFilter(filter);
         assertEquals(1, found.size());
         assertNotNull(found.getFirst().getOrder());
     }
 
-    private Fixture prepareFixture() {
-        ProductCategories category = new ProductCategories();
-        category.setId(1L);
-        category.setName("Техника");
-        productCategoriesDAO.save(category);
+    @Test
+    void testGetProductNonNull() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Providers provider = saveProvider(1L, "ООО Альфа");
+        Supplies supply = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
+        ShelfsWorkload shelf = saveShelf(1L, 1, 0);
+        ProductUnits unit = saveUnit(1L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, supply, null);
 
-        Products product = new Products();
-        product.setId(1L);
-        product.setCategory(category);
-        product.setName("Ноутбук");
-        product.setUnit(UnitsType.kg);
-        product.setProduct_size(SizeType.large);
-        product.setUnitsForOne(1);
-        product.setStorageLife(Duration.ofDays(90));
-        productsDAO.save(product);
-
-        Providers provider = new Providers();
-        provider.setId(1L);
-        provider.setName("Поставщик");
-        provider.setPhoneNum("123");
-        provider.setEmail("p@test");
-        providersDAO.save(provider);
-
-        Supplies supply = new Supplies();
-        supply.setId(1L);
-        supply.setProduct(product);
-        supply.setProvider(provider);
-        supply.setAmount(BigDecimal.valueOf(10));
-        supply.setTime(LocalDateTime.of(2026, 1, 1, 9, 0));
-        suppliesDAO.save(supply);
-
-        ShelfsWorkload shelf = new ShelfsWorkload();
-        shelf.setId(1L);
-        shelf.setRoomNum(100);
-        shelf.setWorkloadCount(50);
-        shelfsWorkloadDAO.save(shelf);
-
-        Consumers consumer = new Consumers();
-        consumer.setId(1L);
-        consumer.setName("Клиент");
-        consumer.setPhoneNum("555");
-        consumer.setEmail("c@test");
-        consumersDAO.save(consumer);
-
-        Orders order = new Orders();
-        order.setId(1L);
-        order.setProduct(product);
-        order.setConsumer(consumer);
-        order.setAmount(BigDecimal.valueOf(3));
-        order.setTime(LocalDateTime.of(2026, 1, 1, 12, 0));
-        ordersDAO.save(order);
-
-        return new Fixture(product, provider, supply, shelf, order);
+        assertNotNull(productUnitsDAO.getProduct(unit));
     }
 
-    private ProductUnits saveUnit(Long id, Products product, Supplies supply, ShelfsWorkload shelf,
-                                  Orders order, LocalDateTime arrival, BigDecimal amount) {
-        ProductUnits unit = new ProductUnits();
-        unit.setId(id);
-        unit.setProduct(product);
-        unit.setSupply(supply);
-        unit.setShelf(shelf);
-        unit.setOrder(order);
-        unit.setArrival(arrival);
-        unit.setAmount(amount);
-        productUnitsDAO.save(unit);
-        return unit;
+    @Test
+    void testGetProductNull() {
+        assertNull(productUnitsDAO.getProduct(null));
     }
 
-    private record Fixture(Products product, Providers provider, Supplies supply, ShelfsWorkload shelf, Orders order) {}
+    @Test
+    void testGetShelfNonNull() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Providers provider = saveProvider(1L, "ООО Альфа");
+        Supplies supply = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
+        ShelfsWorkload shelf = saveShelf(1L, 1, 0);
+        ProductUnits unit = saveUnit(1L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, supply, null);
 
-    @BeforeAll
-    @AfterEach
-    void annihilation() {
-        SessionFactory sessionFactory = entityManagerFactory.unwrap(SessionFactory.class);
-        try (Session session = sessionFactory.openSession()) {
-            session.beginTransaction();
-            session.createNativeQuery("TRUNCATE TABLE product_units CASCADE").executeUpdate();
-            session.createNativeQuery("TRUNCATE TABLE orders CASCADE").executeUpdate();
-            session.createNativeQuery("TRUNCATE TABLE supplies CASCADE").executeUpdate();
-            session.createNativeQuery("TRUNCATE TABLE products CASCADE").executeUpdate();
-            session.createNativeQuery("TRUNCATE TABLE consumers CASCADE").executeUpdate();
-            session.createNativeQuery("TRUNCATE TABLE providers CASCADE").executeUpdate();
-            session.createNativeQuery("TRUNCATE TABLE shelfs_workload CASCADE").executeUpdate();
-            session.createNativeQuery("TRUNCATE TABLE product_categories CASCADE").executeUpdate();
-            session.getTransaction().commit();
-        }
+        assertNotNull(productUnitsDAO.getShelf(unit));
+    }
+
+    @Test
+    void testGetShelfNull() {
+        assertNull(productUnitsDAO.getShelf(null));
+    }
+
+    @Test
+    void testGetSupplyNonNull() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Providers provider = saveProvider(1L, "ООО Альфа");
+        Supplies supply = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
+        ShelfsWorkload shelf = saveShelf(1L, 1, 0);
+        ProductUnits unit = saveUnit(1L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, supply, null);
+
+        assertNotNull(productUnitsDAO.getSupply(unit));
+    }
+
+    @Test
+    void testGetSupplyNull() {
+        assertNull(productUnitsDAO.getSupply(null));
+    }
+
+    @Test
+    void testGetOrderNonNull() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Consumers consumer = saveConsumer(1L, "Иван");
+        Providers provider = saveProvider(1L, "ООО Альфа");
+        Supplies supply = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
+        Orders order = saveOrder(1L, product, consumer, BigDecimal.ONE, LocalDateTime.now(), false);
+        ShelfsWorkload shelf = saveShelf(1L, 1, 0);
+        ProductUnits unit = saveUnit(1L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, supply, order);
+
+        assertNotNull(productUnitsDAO.getOrder(unit));
+    }
+
+    @Test
+    void testGetOrderNullArgument() {
+        assertNull(productUnitsDAO.getOrder(null));
+    }
+
+    @Test
+    void testGetOrderNullValueInsideUnit() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Providers provider = saveProvider(1L, "ООО Альфа");
+        Supplies supply = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
+        ShelfsWorkload shelf = saveShelf(1L, 1, 0);
+        ProductUnits unit = saveUnit(1L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, supply, null);
+
+        assertNull(productUnitsDAO.getOrder(unit));
+    }
+
+    @Test
+    void testGetFreeUnits() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Consumers consumer = saveConsumer(1L, "Иван");
+        Providers provider = saveProvider(1L, "ООО Альфа");
+        Supplies supply = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
+        Orders order = saveOrder(1L, product, consumer, BigDecimal.ONE, LocalDateTime.now(), false);
+        ShelfsWorkload shelf = saveShelf(1L, 1, 0);
+
+        saveUnit(1L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, supply, null);
+        saveUnit(2L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, supply, order);
+
+        assertEquals(1, productUnitsDAO.getFreeUnits().size());
+    }
+
+    @Test
+    void testGetReservedUnits() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Consumers consumer = saveConsumer(1L, "Иван");
+        Providers provider = saveProvider(1L, "ООО Альфа");
+        Supplies supply = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
+        Orders order = saveOrder(1L, product, consumer, BigDecimal.ONE, LocalDateTime.now(), false);
+        ShelfsWorkload shelf = saveShelf(1L, 1, 0);
+
+        saveUnit(1L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, supply, null);
+        saveUnit(2L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, supply, order);
+
+        assertEquals(1, productUnitsDAO.getReservedUnits().size());
     }
 }

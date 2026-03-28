@@ -1,9 +1,5 @@
 package ru.msu.cmc.prak.DAO.impl;
 
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.stereotype.Repository;
@@ -17,7 +13,7 @@ import java.util.List;
 @Repository
 public class ShelfsWorkloadDAOImpl extends CommonDAOImpl<ShelfsWorkload, Long> implements ShelfsWorkloadDAO {
 
-    private static final int DEFAULT_CAPACITY = 500;
+    private static final int SHELF_CAPACITY = 500;
 
     public ShelfsWorkloadDAOImpl() {
         super(ShelfsWorkload.class);
@@ -27,8 +23,10 @@ public class ShelfsWorkloadDAOImpl extends CommonDAOImpl<ShelfsWorkload, Long> i
     public List<ShelfsWorkload> getByRoomNum(Integer roomNum) {
         try (Session session = sessionFactory.openSession()) {
             Query<ShelfsWorkload> query = session.createQuery(
-                    "FROM ShelfsWorkload WHERE roomNum = :room", ShelfsWorkload.class);
-            query.setParameter("room", roomNum);
+                    "from ShelfsWorkload s where s.roomNum = :roomNum order by s.id",
+                    ShelfsWorkload.class
+            );
+            query.setParameter("roomNum", roomNum);
             return query.getResultList();
         }
     }
@@ -37,9 +35,11 @@ public class ShelfsWorkloadDAOImpl extends CommonDAOImpl<ShelfsWorkload, Long> i
     public List<ShelfsWorkload> getShelvesWithFreeSpace(int requiredUnits) {
         try (Session session = sessionFactory.openSession()) {
             Query<ShelfsWorkload> query = session.createQuery(
-                    "FROM ShelfsWorkload WHERE (workloadCount + :required) <= :capacity", ShelfsWorkload.class);
-            query.setParameter("required", requiredUnits);
-            query.setParameter("capacity", DEFAULT_CAPACITY);
+                    "from ShelfsWorkload s where (s.workloadCount + :requiredUnits) <= :capacity order by s.id",
+                    ShelfsWorkload.class
+            );
+            query.setParameter("requiredUnits", requiredUnits);
+            query.setParameter("capacity", SHELF_CAPACITY);
             return query.getResultList();
         }
     }
@@ -48,7 +48,9 @@ public class ShelfsWorkloadDAOImpl extends CommonDAOImpl<ShelfsWorkload, Long> i
     public List<ProductUnits> getUnitsOnShelf(ShelfsWorkload shelf) {
         try (Session session = sessionFactory.openSession()) {
             Query<ProductUnits> query = session.createQuery(
-                    "FROM ProductUnits WHERE shelf = :shelf", ProductUnits.class);
+                    "from ProductUnits u where u.shelf = :shelf order by u.arrival, u.id",
+                    ProductUnits.class
+            );
             query.setParameter("shelf", shelf);
             return query.getResultList();
         }
@@ -59,8 +61,10 @@ public class ShelfsWorkloadDAOImpl extends CommonDAOImpl<ShelfsWorkload, Long> i
         try (Session session = sessionFactory.openSession()) {
             var tx = session.beginTransaction();
             try {
-                shelf.setWorkloadCount(newWorkload);
-                session.merge(shelf);
+                ShelfsWorkload managed = session.find(ShelfsWorkload.class, shelf.getId());
+                if (managed != null) {
+                    managed.setWorkloadCount(newWorkload);
+                }
                 tx.commit();
             } catch (Exception e) {
                 if (tx != null && tx.isActive()) {
@@ -74,27 +78,34 @@ public class ShelfsWorkloadDAOImpl extends CommonDAOImpl<ShelfsWorkload, Long> i
     @Override
     public List<ShelfsWorkload> getByFilter(Filter filter) {
         try (Session session = sessionFactory.openSession()) {
-            CriteriaBuilder builder = session.getCriteriaBuilder();
-            CriteriaQuery<ShelfsWorkload> criteriaQuery = builder.createQuery(ShelfsWorkload.class);
-            Root<ShelfsWorkload> root = criteriaQuery.from(ShelfsWorkload.class);
-
-            List<Predicate> predicates = new ArrayList<>();
+            StringBuilder hql = new StringBuilder("from ShelfsWorkload s where 1=1");
+            List<ParameterBinder> binders = new ArrayList<>();
 
             if (filter.getRoomNum() != null) {
-                predicates.add(builder.equal(root.get("roomNum"), filter.getRoomNum()));
+                hql.append(" and s.roomNum = :roomNum");
+                binders.add(q -> q.setParameter("roomNum", filter.getRoomNum()));
             }
             if (filter.getMinWorkload() != null) {
-                predicates.add(builder.greaterThanOrEqualTo(root.get("workloadCount"), filter.getMinWorkload()));
+                hql.append(" and s.workloadCount >= :minWorkload");
+                binders.add(q -> q.setParameter("minWorkload", filter.getMinWorkload()));
             }
             if (filter.getMaxWorkload() != null) {
-                predicates.add(builder.lessThanOrEqualTo(root.get("workloadCount"), filter.getMaxWorkload()));
+                hql.append(" and s.workloadCount <= :maxWorkload");
+                binders.add(q -> q.setParameter("maxWorkload", filter.getMaxWorkload()));
             }
 
-            if (!predicates.isEmpty()) {
-                criteriaQuery.where(predicates.toArray(new Predicate[0]));
-            }
+            hql.append(" order by s.id");
 
-            return session.createQuery(criteriaQuery).getResultList();
+            Query<ShelfsWorkload> query = session.createQuery(hql.toString(), ShelfsWorkload.class);
+            for (ParameterBinder binder : binders) {
+                binder.bind(query);
+            }
+            return query.getResultList();
         }
+    }
+
+    @FunctionalInterface
+    private interface ParameterBinder {
+        void bind(Query<ShelfsWorkload> query);
     }
 }

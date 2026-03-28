@@ -1,9 +1,5 @@
 package ru.msu.cmc.prak.DAO.impl;
 
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.stereotype.Repository;
@@ -25,7 +21,9 @@ public class ConsumersDAOImpl extends CommonDAOImpl<Consumers, Long> implements 
     public List<Consumers> getAllByName(String name) {
         try (Session session = sessionFactory.openSession()) {
             Query<Consumers> query = session.createQuery(
-                    "FROM Consumers WHERE name LIKE :name", Consumers.class);
+                    "from Consumers c where lower(c.name) like :name order by c.id",
+                    Consumers.class
+            );
             query.setParameter("name", likeExpr(name));
             return query.getResultList();
         }
@@ -33,15 +31,24 @@ public class ConsumersDAOImpl extends CommonDAOImpl<Consumers, Long> implements 
 
     @Override
     public Consumers getSingleByName(String name) {
-        List<Consumers> candidates = getAllByName(name);
-        return candidates.size() == 1 ? candidates.getFirst() : null;
+        try (Session session = sessionFactory.openSession()) {
+            Query<Consumers> query = session.createQuery(
+                    "from Consumers c where lower(c.name) = lower(:name)",
+                    Consumers.class
+            );
+            query.setParameter("name", name);
+            query.setMaxResults(1);
+            return query.uniqueResultOptional().orElse(null);
+        }
     }
 
     @Override
     public List<Consumers> getByPhoneNum(String phoneNum) {
         try (Session session = sessionFactory.openSession()) {
             Query<Consumers> query = session.createQuery(
-                    "FROM Consumers WHERE phoneNum LIKE :phone", Consumers.class);
+                    "from Consumers c where lower(c.phoneNum) like :phone order by c.id",
+                    Consumers.class
+            );
             query.setParameter("phone", likeExpr(phoneNum));
             return query.getResultList();
         }
@@ -51,7 +58,9 @@ public class ConsumersDAOImpl extends CommonDAOImpl<Consumers, Long> implements 
     public List<Consumers> getByEmail(String email) {
         try (Session session = sessionFactory.openSession()) {
             Query<Consumers> query = session.createQuery(
-                    "FROM Consumers WHERE email LIKE :email", Consumers.class);
+                    "from Consumers c where lower(c.email) like :email order by c.id",
+                    Consumers.class
+            );
             query.setParameter("email", likeExpr(email));
             return query.getResultList();
         }
@@ -60,33 +69,37 @@ public class ConsumersDAOImpl extends CommonDAOImpl<Consumers, Long> implements 
     @Override
     public List<Consumers> getByFilter(Filter filter) {
         try (Session session = sessionFactory.openSession()) {
-            CriteriaBuilder builder = session.getCriteriaBuilder();
-            CriteriaQuery<Consumers> criteriaQuery = builder.createQuery(Consumers.class);
-            Root<Consumers> root = criteriaQuery.from(Consumers.class);
-
-            List<Predicate> predicates = new ArrayList<>();
+            StringBuilder hql = new StringBuilder("from Consumers c where 1=1");
+            List<ParameterBinder> binders = new ArrayList<>();
 
             if (filter.getId() != null) {
-                predicates.add(builder.equal(root.get("id"), filter.getId()));
+                hql.append(" and c.id = :id");
+                binders.add(q -> q.setParameter("id", filter.getId()));
             }
             if (filter.getName() != null) {
-                predicates.add(builder.like(root.get("name"), likeExpr(filter.getName())));
+                hql.append(" and lower(c.name) like :name");
+                binders.add(q -> q.setParameter("name", likeExpr(filter.getName())));
             }
             if (filter.getAddress() != null) {
-                predicates.add(builder.like(root.get("address"), likeExpr(filter.getAddress())));
+                hql.append(" and lower(c.address) like :address");
+                binders.add(q -> q.setParameter("address", likeExpr(filter.getAddress())));
             }
             if (filter.getPhoneNum() != null) {
-                predicates.add(builder.like(root.get("phoneNum"), likeExpr(filter.getPhoneNum())));
+                hql.append(" and lower(c.phoneNum) like :phoneNum");
+                binders.add(q -> q.setParameter("phoneNum", likeExpr(filter.getPhoneNum())));
             }
             if (filter.getEmail() != null) {
-                predicates.add(builder.like(root.get("email"), likeExpr(filter.getEmail())));
+                hql.append(" and lower(c.email) like :email");
+                binders.add(q -> q.setParameter("email", likeExpr(filter.getEmail())));
             }
 
-            if (!predicates.isEmpty()) {
-                criteriaQuery.where(predicates.toArray(new Predicate[0]));
-            }
+            hql.append(" order by c.id");
 
-            return session.createQuery(criteriaQuery).getResultList();
+            Query<Consumers> query = session.createQuery(hql.toString(), Consumers.class);
+            for (ParameterBinder binder : binders) {
+                binder.bind(query);
+            }
+            return query.getResultList();
         }
     }
 
@@ -94,13 +107,20 @@ public class ConsumersDAOImpl extends CommonDAOImpl<Consumers, Long> implements 
     public List<Orders> getOrdersByConsumer(Consumers consumer) {
         try (Session session = sessionFactory.openSession()) {
             Query<Orders> query = session.createQuery(
-                    "FROM Orders WHERE consumer = :cons", Orders.class);
-            query.setParameter("cons", consumer);
+                    "from Orders o where o.consumer = :consumer order by o.time, o.id",
+                    Orders.class
+            );
+            query.setParameter("consumer", consumer);
             return query.getResultList();
         }
     }
 
-    private String likeExpr(String param) {
-        return "%" + param + "%";
+    private String likeExpr(String value) {
+        return "%" + value.toLowerCase() + "%";
+    }
+
+    @FunctionalInterface
+    private interface ParameterBinder {
+        void bind(Query<Consumers> query);
     }
 }

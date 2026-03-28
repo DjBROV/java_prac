@@ -1,9 +1,5 @@
 package ru.msu.cmc.prak.DAO.impl;
 
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.stereotype.Repository;
@@ -26,8 +22,10 @@ public class ProductUnitsDAOImpl extends CommonDAOImpl<ProductUnits, Long> imple
     public List<ProductUnits> getByProductId(Long productId) {
         try (Session session = sessionFactory.openSession()) {
             Query<ProductUnits> query = session.createQuery(
-                    "FROM ProductUnits WHERE product.id = :prodId", ProductUnits.class);
-            query.setParameter("prodId", productId);
+                    "from ProductUnits u where u.product.id = :productId order by u.arrival, u.id",
+                    ProductUnits.class
+            );
+            query.setParameter("productId", productId);
             return query.getResultList();
         }
     }
@@ -36,8 +34,10 @@ public class ProductUnitsDAOImpl extends CommonDAOImpl<ProductUnits, Long> imple
     public List<ProductUnits> getByShelfNum(Long shelfNum) {
         try (Session session = sessionFactory.openSession()) {
             Query<ProductUnits> query = session.createQuery(
-                    "FROM ProductUnits WHERE shelf.id = :shelfId", ProductUnits.class);
-            query.setParameter("shelfId", shelfNum);
+                    "from ProductUnits u where u.shelf.id = :shelfNum order by u.arrival, u.id",
+                    ProductUnits.class
+            );
+            query.setParameter("shelfNum", shelfNum);
             return query.getResultList();
         }
     }
@@ -46,7 +46,9 @@ public class ProductUnitsDAOImpl extends CommonDAOImpl<ProductUnits, Long> imple
     public List<ProductUnits> getBySupplyId(Long supplyId) {
         try (Session session = sessionFactory.openSession()) {
             Query<ProductUnits> query = session.createQuery(
-                    "FROM ProductUnits WHERE supply.id = :supplyId", ProductUnits.class);
+                    "from ProductUnits u where u.supply.id = :supplyId order by u.arrival, u.id",
+                    ProductUnits.class
+            );
             query.setParameter("supplyId", supplyId);
             return query.getResultList();
         }
@@ -56,7 +58,9 @@ public class ProductUnitsDAOImpl extends CommonDAOImpl<ProductUnits, Long> imple
     public List<ProductUnits> getByOrderId(Long orderId) {
         try (Session session = sessionFactory.openSession()) {
             Query<ProductUnits> query = session.createQuery(
-                    "FROM ProductUnits WHERE order.id = :orderId", ProductUnits.class);
+                    "from ProductUnits u where u.order.id = :orderId order by u.arrival, u.id",
+                    ProductUnits.class
+            );
             query.setParameter("orderId", orderId);
             return query.getResultList();
         }
@@ -66,7 +70,9 @@ public class ProductUnitsDAOImpl extends CommonDAOImpl<ProductUnits, Long> imple
     public List<ProductUnits> getByArrivalRange(LocalDateTime from, LocalDateTime to) {
         try (Session session = sessionFactory.openSession()) {
             Query<ProductUnits> query = session.createQuery(
-                    "FROM ProductUnits WHERE arrival BETWEEN :from AND :to", ProductUnits.class);
+                    "from ProductUnits u where u.arrival between :from and :to order by u.arrival, u.id",
+                    ProductUnits.class
+            );
             query.setParameter("from", from);
             query.setParameter("to", to);
             return query.getResultList();
@@ -76,80 +82,90 @@ public class ProductUnitsDAOImpl extends CommonDAOImpl<ProductUnits, Long> imple
     @Override
     public List<ProductUnits> getByFilter(Filter filter) {
         try (Session session = sessionFactory.openSession()) {
-            CriteriaBuilder builder = session.getCriteriaBuilder();
-            CriteriaQuery<ProductUnits> criteriaQuery = builder.createQuery(ProductUnits.class);
-            Root<ProductUnits> root = criteriaQuery.from(ProductUnits.class);
-
-            List<Predicate> predicates = new ArrayList<>();
+            StringBuilder hql = new StringBuilder("from ProductUnits u where 1=1");
+            List<ParameterBinder> binders = new ArrayList<>();
 
             if (filter.getProductId() != null) {
-                predicates.add(builder.equal(root.get("product").get("id"), filter.getProductId()));
+                hql.append(" and u.product.id = :productId");
+                binders.add(q -> q.setParameter("productId", filter.getProductId()));
             }
             if (filter.getSupplyId() != null) {
-                predicates.add(builder.equal(root.get("supply").get("id"), filter.getSupplyId()));
+                hql.append(" and u.supply.id = :supplyId");
+                binders.add(q -> q.setParameter("supplyId", filter.getSupplyId()));
             }
             if (filter.getSupplierId() != null) {
-                predicates.add(builder.equal(root.get("supply").get("provider").get("id"), filter.getSupplierId()));
+                hql.append(" and u.supply.provider.id = :supplierId");
+                binders.add(q -> q.setParameter("supplierId", filter.getSupplierId()));
             }
             if (filter.getShelfNum() != null) {
-                predicates.add(builder.equal(root.get("shelf").get("id"), filter.getShelfNum()));
+                hql.append(" and u.shelf.id = :shelfNum");
+                binders.add(q -> q.setParameter("shelfNum", filter.getShelfNum()));
             }
             if (filter.getRoomNum() != null) {
-                predicates.add(builder.equal(root.get("shelf").get("roomNum"), filter.getRoomNum()));
+                hql.append(" and u.shelf.roomNum = :roomNum");
+                binders.add(q -> q.setParameter("roomNum", filter.getRoomNum()));
             }
             if (filter.getMinAmount() != null) {
-                predicates.add(builder.greaterThanOrEqualTo(root.get("amount"), BigDecimal.valueOf(filter.getMinAmount())));
+                hql.append(" and u.amount >= :minAmount");
+                binders.add(q -> q.setParameter("minAmount", bd(filter.getMinAmount())));
             }
             if (filter.getMaxAmount() != null) {
-                predicates.add(builder.lessThanOrEqualTo(root.get("amount"), BigDecimal.valueOf(filter.getMaxAmount())));
+                hql.append(" and u.amount <= :maxAmount");
+                binders.add(q -> q.setParameter("maxAmount", bd(filter.getMaxAmount())));
             }
             if (filter.getArrivalFrom() != null) {
-                predicates.add(builder.greaterThanOrEqualTo(root.get("arrival"), filter.getArrivalFrom()));
+                hql.append(" and u.arrival >= :arrivalFrom");
+                binders.add(q -> q.setParameter("arrivalFrom", filter.getArrivalFrom()));
             }
             if (filter.getArrivalTo() != null) {
-                predicates.add(builder.lessThanOrEqualTo(root.get("arrival"), filter.getArrivalTo()));
+                hql.append(" and u.arrival <= :arrivalTo");
+                binders.add(q -> q.setParameter("arrivalTo", filter.getArrivalTo()));
             }
             if (filter.getReserved() != null) {
                 if (filter.getReserved()) {
-                    predicates.add(builder.isNotNull(root.get("order")));
+                    hql.append(" and u.order is not null");
                 } else {
-                    predicates.add(builder.isNull(root.get("order")));
+                    hql.append(" and u.order is null");
                 }
             }
 
-            if (!predicates.isEmpty()) {
-                criteriaQuery.where(predicates.toArray(new Predicate[0]));
-            }
+            hql.append(" order by u.arrival, u.id");
 
-            return session.createQuery(criteriaQuery).getResultList();
+            Query<ProductUnits> query = session.createQuery(hql.toString(), ProductUnits.class);
+            for (ParameterBinder binder : binders) {
+                binder.bind(query);
+            }
+            return query.getResultList();
         }
     }
 
     @Override
     public Products getProduct(ProductUnits unit) {
-        return unit.getProduct();
+        return unit == null ? null : unit.getProduct();
     }
 
     @Override
     public ShelfsWorkload getShelf(ProductUnits unit) {
-        return unit.getShelf();
+        return unit == null ? null : unit.getShelf();
     }
 
     @Override
     public Supplies getSupply(ProductUnits unit) {
-        return unit.getSupply();
+        return unit == null ? null : unit.getSupply();
     }
 
     @Override
     public Orders getOrder(ProductUnits unit) {
-        return unit.getOrder();
+        return unit == null ? null : unit.getOrder();
     }
 
     @Override
     public List<ProductUnits> getFreeUnits() {
         try (Session session = sessionFactory.openSession()) {
             Query<ProductUnits> query = session.createQuery(
-                    "FROM ProductUnits WHERE order IS NULL", ProductUnits.class);
+                    "from ProductUnits u where u.order is null order by u.arrival, u.id",
+                    ProductUnits.class
+            );
             return query.getResultList();
         }
     }
@@ -158,8 +174,19 @@ public class ProductUnitsDAOImpl extends CommonDAOImpl<ProductUnits, Long> imple
     public List<ProductUnits> getReservedUnits() {
         try (Session session = sessionFactory.openSession()) {
             Query<ProductUnits> query = session.createQuery(
-                    "FROM ProductUnits WHERE order IS NOT NULL", ProductUnits.class);
+                    "from ProductUnits u where u.order is not null order by u.arrival, u.id",
+                    ProductUnits.class
+            );
             return query.getResultList();
         }
+    }
+
+    private BigDecimal bd(Integer value) {
+        return value == null ? null : BigDecimal.valueOf(value.longValue());
+    }
+
+    @FunctionalInterface
+    private interface ParameterBinder {
+        void bind(Query<ProductUnits> query);
     }
 }

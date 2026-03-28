@@ -1,9 +1,5 @@
 package ru.msu.cmc.prak.DAO.impl;
 
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.stereotype.Repository;
@@ -25,7 +21,9 @@ public class ProvidersDAOImpl extends CommonDAOImpl<Providers, Long> implements 
     public List<Providers> getAllByName(String name) {
         try (Session session = sessionFactory.openSession()) {
             Query<Providers> query = session.createQuery(
-                    "FROM Providers WHERE name LIKE :name", Providers.class);
+                    "from Providers p where lower(p.name) like :name order by p.id",
+                    Providers.class
+            );
             query.setParameter("name", likeExpr(name));
             return query.getResultList();
         }
@@ -33,15 +31,24 @@ public class ProvidersDAOImpl extends CommonDAOImpl<Providers, Long> implements 
 
     @Override
     public Providers getSingleByName(String name) {
-        List<Providers> candidates = getAllByName(name);
-        return candidates.size() == 1 ? candidates.getFirst() : null;
+        try (Session session = sessionFactory.openSession()) {
+            Query<Providers> query = session.createQuery(
+                    "from Providers p where lower(p.name) = lower(:name)",
+                    Providers.class
+            );
+            query.setParameter("name", name);
+            query.setMaxResults(1);
+            return query.uniqueResultOptional().orElse(null);
+        }
     }
 
     @Override
     public List<Providers> getByPhoneNum(String phoneNum) {
         try (Session session = sessionFactory.openSession()) {
             Query<Providers> query = session.createQuery(
-                    "FROM Providers WHERE phoneNum LIKE :phone", Providers.class);
+                    "from Providers p where lower(p.phoneNum) like :phone order by p.id",
+                    Providers.class
+            );
             query.setParameter("phone", likeExpr(phoneNum));
             return query.getResultList();
         }
@@ -51,7 +58,9 @@ public class ProvidersDAOImpl extends CommonDAOImpl<Providers, Long> implements 
     public List<Providers> getByEmail(String email) {
         try (Session session = sessionFactory.openSession()) {
             Query<Providers> query = session.createQuery(
-                    "FROM Providers WHERE email LIKE :email", Providers.class);
+                    "from Providers p where lower(p.email) like :email order by p.id",
+                    Providers.class
+            );
             query.setParameter("email", likeExpr(email));
             return query.getResultList();
         }
@@ -60,33 +69,37 @@ public class ProvidersDAOImpl extends CommonDAOImpl<Providers, Long> implements 
     @Override
     public List<Providers> getByFilter(Filter filter) {
         try (Session session = sessionFactory.openSession()) {
-            CriteriaBuilder builder = session.getCriteriaBuilder();
-            CriteriaQuery<Providers> criteriaQuery = builder.createQuery(Providers.class);
-            Root<Providers> root = criteriaQuery.from(Providers.class);
-
-            List<Predicate> predicates = new ArrayList<>();
+            StringBuilder hql = new StringBuilder("from Providers p where 1=1");
+            List<ParameterBinder> binders = new ArrayList<>();
 
             if (filter.getId() != null) {
-                predicates.add(builder.equal(root.get("id"), filter.getId()));
+                hql.append(" and p.id = :id");
+                binders.add(q -> q.setParameter("id", filter.getId()));
             }
             if (filter.getName() != null) {
-                predicates.add(builder.like(root.get("name"), likeExpr(filter.getName())));
+                hql.append(" and lower(p.name) like :name");
+                binders.add(q -> q.setParameter("name", likeExpr(filter.getName())));
             }
             if (filter.getAddress() != null) {
-                predicates.add(builder.like(root.get("address"), likeExpr(filter.getAddress())));
+                hql.append(" and lower(p.address) like :address");
+                binders.add(q -> q.setParameter("address", likeExpr(filter.getAddress())));
             }
             if (filter.getPhoneNum() != null) {
-                predicates.add(builder.like(root.get("phoneNum"), likeExpr(filter.getPhoneNum())));
+                hql.append(" and lower(p.phoneNum) like :phoneNum");
+                binders.add(q -> q.setParameter("phoneNum", likeExpr(filter.getPhoneNum())));
             }
             if (filter.getEmail() != null) {
-                predicates.add(builder.like(root.get("email"), likeExpr(filter.getEmail())));
+                hql.append(" and lower(p.email) like :email");
+                binders.add(q -> q.setParameter("email", likeExpr(filter.getEmail())));
             }
 
-            if (!predicates.isEmpty()) {
-                criteriaQuery.where(predicates.toArray(new Predicate[0]));
-            }
+            hql.append(" order by p.id");
 
-            return session.createQuery(criteriaQuery).getResultList();
+            Query<Providers> query = session.createQuery(hql.toString(), Providers.class);
+            for (ParameterBinder binder : binders) {
+                binder.bind(query);
+            }
+            return query.getResultList();
         }
     }
 
@@ -94,13 +107,20 @@ public class ProvidersDAOImpl extends CommonDAOImpl<Providers, Long> implements 
     public List<Supplies> getSuppliesFromProvider(Providers provider) {
         try (Session session = sessionFactory.openSession()) {
             Query<Supplies> query = session.createQuery(
-                    "FROM Supplies WHERE provider = :prov", Supplies.class);
-            query.setParameter("prov", provider);
+                    "from Supplies s where s.provider = :provider order by s.time, s.id",
+                    Supplies.class
+            );
+            query.setParameter("provider", provider);
             return query.getResultList();
         }
     }
 
-    private String likeExpr(String param) {
-        return "%" + param + "%";
+    private String likeExpr(String value) {
+        return "%" + value.toLowerCase() + "%";
+    }
+
+    @FunctionalInterface
+    private interface ParameterBinder {
+        void bind(Query<Providers> query);
     }
 }

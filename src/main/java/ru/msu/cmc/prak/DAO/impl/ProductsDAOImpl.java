@@ -1,9 +1,5 @@
 package ru.msu.cmc.prak.DAO.impl;
 
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.stereotype.Repository;
@@ -24,7 +20,9 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
     public List<Products> getAllByName(String name) {
         try (Session session = sessionFactory.openSession()) {
             Query<Products> query = session.createQuery(
-                    "FROM Products WHERE name LIKE :name", Products.class);
+                    "from Products p where lower(p.name) like :name order by p.id",
+                    Products.class
+            );
             query.setParameter("name", likeExpr(name));
             return query.getResultList();
         }
@@ -32,16 +30,25 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
 
     @Override
     public Products getSingleByName(String name) {
-        List<Products> candidates = getAllByName(name);
-        return candidates.size() == 1 ? candidates.getFirst() : null;
+        try (Session session = sessionFactory.openSession()) {
+            Query<Products> query = session.createQuery(
+                    "from Products p where lower(p.name) = lower(:name)",
+                    Products.class
+            );
+            query.setParameter("name", name);
+            query.setMaxResults(1);
+            return query.uniqueResultOptional().orElse(null);
+        }
     }
 
     @Override
     public List<Products> getByCategoryId(Long categoryId) {
         try (Session session = sessionFactory.openSession()) {
             Query<Products> query = session.createQuery(
-                    "FROM Products WHERE category.id = :catId", Products.class);
-            query.setParameter("catId", categoryId);
+                    "from Products p where p.category.id = :categoryId order by p.id",
+                    Products.class
+            );
+            query.setParameter("categoryId", categoryId);
             return query.getResultList();
         }
     }
@@ -50,7 +57,9 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
     public List<Products> getByUnit(UnitsType unit) {
         try (Session session = sessionFactory.openSession()) {
             Query<Products> query = session.createQuery(
-                    "FROM Products WHERE unit = :unit", Products.class);
+                    "from Products p where p.unit = :unit order by p.id",
+                    Products.class
+            );
             query.setParameter("unit", unit);
             return query.getResultList();
         }
@@ -60,7 +69,9 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
     public List<Products> getBySize(SizeType size) {
         try (Session session = sessionFactory.openSession()) {
             Query<Products> query = session.createQuery(
-                    "FROM Products WHERE product_size = :size", Products.class);
+                    "from Products p where p.product_size = :size order by p.id",
+                    Products.class
+            );
             query.setParameter("size", size);
             return query.getResultList();
         }
@@ -69,45 +80,53 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
     @Override
     public List<Products> getByFilter(Filter filter) {
         try (Session session = sessionFactory.openSession()) {
-            CriteriaBuilder builder = session.getCriteriaBuilder();
-            CriteriaQuery<Products> criteriaQuery = builder.createQuery(Products.class);
-            Root<Products> root = criteriaQuery.from(Products.class);
-
-            List<Predicate> predicates = new ArrayList<>();
+            StringBuilder hql = new StringBuilder("from Products p where 1=1");
+            List<ParameterBinder> binders = new ArrayList<>();
 
             if (filter.getId() != null) {
-                predicates.add(builder.equal(root.get("id"), filter.getId()));
+                hql.append(" and p.id = :id");
+                binders.add(q -> q.setParameter("id", filter.getId()));
             }
             if (filter.getName() != null) {
-                predicates.add(builder.like(root.get("name"), likeExpr(filter.getName())));
+                hql.append(" and lower(p.name) like :name");
+                binders.add(q -> q.setParameter("name", likeExpr(filter.getName())));
             }
             if (filter.getCategoryId() != null) {
-                predicates.add(builder.equal(root.get("category").get("id"), filter.getCategoryId()));
+                hql.append(" and p.category.id = :categoryId");
+                binders.add(q -> q.setParameter("categoryId", filter.getCategoryId()));
             }
             if (filter.getCategoryName() != null) {
-                predicates.add(builder.like(root.get("category").get("name"), likeExpr(filter.getCategoryName())));
+                hql.append(" and lower(p.category.name) like :categoryName");
+                binders.add(q -> q.setParameter("categoryName", likeExpr(filter.getCategoryName())));
             }
             if (filter.getUnit() != null) {
-                predicates.add(builder.equal(root.get("unit"), filter.getUnit()));
+                hql.append(" and p.unit = :unit");
+                binders.add(q -> q.setParameter("unit", filter.getUnit()));
             }
             if (filter.getSize() != null) {
-                predicates.add(builder.equal(root.get("product_size"), filter.getSize()));
+                hql.append(" and p.product_size = :size");
+                binders.add(q -> q.setParameter("size", filter.getSize()));
             }
             if (filter.getMinStorageLife() != null) {
-                predicates.add(builder.greaterThanOrEqualTo(root.get("storageLife"), filter.getMinStorageLife()));
+                hql.append(" and p.storageLife >= :minStorageLife");
+                binders.add(q -> q.setParameter("minStorageLife", filter.getMinStorageLife()));
             }
             if (filter.getMaxStorageLife() != null) {
-                predicates.add(builder.lessThanOrEqualTo(root.get("storageLife"), filter.getMaxStorageLife()));
+                hql.append(" and p.storageLife <= :maxStorageLife");
+                binders.add(q -> q.setParameter("maxStorageLife", filter.getMaxStorageLife()));
             }
             if (Boolean.TRUE.equals(filter.getLarge())) {
-                predicates.add(builder.equal(root.get("product_size"), SizeType.large));
+                hql.append(" and p.product_size = :largeSize");
+                binders.add(q -> q.setParameter("largeSize", SizeType.large));
             }
 
-            if (!predicates.isEmpty()) {
-                criteriaQuery.where(predicates.toArray(new Predicate[0]));
-            }
+            hql.append(" order by p.id");
 
-            return session.createQuery(criteriaQuery).getResultList();
+            Query<Products> query = session.createQuery(hql.toString(), Products.class);
+            for (ParameterBinder binder : binders) {
+                binder.bind(query);
+            }
+            return query.getResultList();
         }
     }
 
@@ -115,8 +134,10 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
     public List<Supplies> getSuppliesForProduct(Products product) {
         try (Session session = sessionFactory.openSession()) {
             Query<Supplies> query = session.createQuery(
-                    "FROM Supplies WHERE product = :prod", Supplies.class);
-            query.setParameter("prod", product);
+                    "from Supplies s where s.product = :product order by s.time, s.id",
+                    Supplies.class
+            );
+            query.setParameter("product", product);
             return query.getResultList();
         }
     }
@@ -125,8 +146,10 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
     public List<Orders> getOrdersForProduct(Products product) {
         try (Session session = sessionFactory.openSession()) {
             Query<Orders> query = session.createQuery(
-                    "FROM Orders WHERE product = :prod", Orders.class);
-            query.setParameter("prod", product);
+                    "from Orders o where o.product = :product order by o.time, o.id",
+                    Orders.class
+            );
+            query.setParameter("product", product);
             return query.getResultList();
         }
     }
@@ -135,18 +158,25 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
     public List<ProductUnits> getUnitsForProduct(Products product) {
         try (Session session = sessionFactory.openSession()) {
             Query<ProductUnits> query = session.createQuery(
-                    "FROM ProductUnits WHERE product = :prod", ProductUnits.class);
-            query.setParameter("prod", product);
+                    "from ProductUnits u where u.product = :product order by u.arrival, u.id",
+                    ProductUnits.class
+            );
+            query.setParameter("product", product);
             return query.getResultList();
         }
     }
 
     @Override
     public ProductCategories getCategory(Products product) {
-        return product.getCategory();
+        return product == null ? null : product.getCategory();
     }
 
-    private String likeExpr(String param) {
-        return "%" + param + "%";
+    private String likeExpr(String value) {
+        return "%" + value.toLowerCase() + "%";
+    }
+
+    @FunctionalInterface
+    private interface ParameterBinder {
+        void bind(Query<Products> query);
     }
 }

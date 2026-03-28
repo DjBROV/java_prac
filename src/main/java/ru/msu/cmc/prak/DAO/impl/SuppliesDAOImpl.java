@@ -1,9 +1,5 @@
 package ru.msu.cmc.prak.DAO.impl;
 
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.stereotype.Repository;
@@ -26,8 +22,10 @@ public class SuppliesDAOImpl extends CommonDAOImpl<Supplies, Long> implements Su
     public List<Supplies> getByProductId(Long productId) {
         try (Session session = sessionFactory.openSession()) {
             Query<Supplies> query = session.createQuery(
-                    "FROM Supplies WHERE product.id = :prodId", Supplies.class);
-            query.setParameter("prodId", productId);
+                    "from Supplies s where s.product.id = :productId order by s.time, s.id",
+                    Supplies.class
+            );
+            query.setParameter("productId", productId);
             return query.getResultList();
         }
     }
@@ -36,8 +34,10 @@ public class SuppliesDAOImpl extends CommonDAOImpl<Supplies, Long> implements Su
     public List<Supplies> getByProviderId(Long providerId) {
         try (Session session = sessionFactory.openSession()) {
             Query<Supplies> query = session.createQuery(
-                    "FROM Supplies WHERE provider.id = :provId", Supplies.class);
-            query.setParameter("provId", providerId);
+                    "from Supplies s where s.provider.id = :providerId order by s.time, s.id",
+                    Supplies.class
+            );
+            query.setParameter("providerId", providerId);
             return query.getResultList();
         }
     }
@@ -46,8 +46,10 @@ public class SuppliesDAOImpl extends CommonDAOImpl<Supplies, Long> implements Su
     public List<Supplies> getByCompleted(Boolean completed) {
         try (Session session = sessionFactory.openSession()) {
             Query<Supplies> query = session.createQuery(
-                    "FROM Supplies WHERE completed = :comp", Supplies.class);
-            query.setParameter("comp", completed);
+                    "from Supplies s where s.completed = :completed order by s.time, s.id",
+                    Supplies.class
+            );
+            query.setParameter("completed", completed);
             return query.getResultList();
         }
     }
@@ -56,7 +58,9 @@ public class SuppliesDAOImpl extends CommonDAOImpl<Supplies, Long> implements Su
     public List<Supplies> getByTimeRange(LocalDateTime from, LocalDateTime to) {
         try (Session session = sessionFactory.openSession()) {
             Query<Supplies> query = session.createQuery(
-                    "FROM Supplies WHERE time BETWEEN :from AND :to", Supplies.class);
+                    "from Supplies s where s.time between :from and :to order by s.time, s.id",
+                    Supplies.class
+            );
             query.setParameter("from", from);
             query.setParameter("to", to);
             return query.getResultList();
@@ -66,72 +70,92 @@ public class SuppliesDAOImpl extends CommonDAOImpl<Supplies, Long> implements Su
     @Override
     public List<Supplies> getByFilter(Filter filter) {
         try (Session session = sessionFactory.openSession()) {
-            CriteriaBuilder builder = session.getCriteriaBuilder();
-            CriteriaQuery<Supplies> criteriaQuery = builder.createQuery(Supplies.class);
-            Root<Supplies> root = criteriaQuery.from(Supplies.class);
-
-            List<Predicate> predicates = new ArrayList<>();
+            StringBuilder hql = new StringBuilder("from Supplies s where 1=1");
+            List<ParameterBinder> binders = new ArrayList<>();
 
             if (filter.getId() != null) {
-                predicates.add(builder.equal(root.get("id"), filter.getId()));
+                hql.append(" and s.id = :id");
+                binders.add(q -> q.setParameter("id", filter.getId()));
             }
             if (filter.getProductId() != null) {
-                predicates.add(builder.equal(root.get("product").get("id"), filter.getProductId()));
+                hql.append(" and s.product.id = :productId");
+                binders.add(q -> q.setParameter("productId", filter.getProductId()));
             }
             if (filter.getProviderId() != null) {
-                predicates.add(builder.equal(root.get("provider").get("id"), filter.getProviderId()));
+                hql.append(" and s.provider.id = :providerId");
+                binders.add(q -> q.setParameter("providerId", filter.getProviderId()));
             }
             if (filter.getProductName() != null) {
-                predicates.add(builder.like(root.get("product").get("name"), likeExpr(filter.getProductName())));
+                hql.append(" and lower(s.product.name) like :productName");
+                binders.add(q -> q.setParameter("productName", likeExpr(filter.getProductName())));
             }
             if (filter.getProviderName() != null) {
-                predicates.add(builder.like(root.get("provider").get("name"), likeExpr(filter.getProviderName())));
+                hql.append(" and lower(s.provider.name) like :providerName");
+                binders.add(q -> q.setParameter("providerName", likeExpr(filter.getProviderName())));
             }
             if (filter.getAmountFrom() != null) {
-                predicates.add(builder.greaterThanOrEqualTo(root.get("amount"), BigDecimal.valueOf(filter.getAmountFrom())));
+                hql.append(" and s.amount >= :amountFrom");
+                binders.add(q -> q.setParameter("amountFrom", bd(filter.getAmountFrom())));
             }
             if (filter.getAmountTo() != null) {
-                predicates.add(builder.lessThanOrEqualTo(root.get("amount"), BigDecimal.valueOf(filter.getAmountTo())));
+                hql.append(" and s.amount <= :amountTo");
+                binders.add(q -> q.setParameter("amountTo", bd(filter.getAmountTo())));
             }
             if (filter.getTimeFrom() != null) {
-                predicates.add(builder.greaterThanOrEqualTo(root.get("time"), filter.getTimeFrom()));
+                hql.append(" and s.time >= :timeFrom");
+                binders.add(q -> q.setParameter("timeFrom", filter.getTimeFrom()));
             }
             if (filter.getTimeTo() != null) {
-                predicates.add(builder.lessThanOrEqualTo(root.get("time"), filter.getTimeTo()));
+                hql.append(" and s.time <= :timeTo");
+                binders.add(q -> q.setParameter("timeTo", filter.getTimeTo()));
             }
             if (filter.getCompleted() != null) {
-                predicates.add(builder.equal(root.get("completed"), filter.getCompleted()));
+                hql.append(" and s.completed = :completed");
+                binders.add(q -> q.setParameter("completed", filter.getCompleted()));
             }
 
-            if (!predicates.isEmpty()) {
-                criteriaQuery.where(predicates.toArray(new Predicate[0]));
-            }
+            hql.append(" order by s.time, s.id");
 
-            return session.createQuery(criteriaQuery).getResultList();
+            Query<Supplies> query = session.createQuery(hql.toString(), Supplies.class);
+            for (ParameterBinder binder : binders) {
+                binder.bind(query);
+            }
+            return query.getResultList();
         }
     }
 
     @Override
     public Providers getProvider(Supplies supply) {
-        return supply.getProvider();
+        return supply == null ? null : supply.getProvider();
     }
 
     @Override
     public Products getProduct(Supplies supply) {
-        return supply.getProduct();
+        return supply == null ? null : supply.getProduct();
     }
 
     @Override
     public List<ProductUnits> getProductUnitsForSupply(Supplies supply) {
         try (Session session = sessionFactory.openSession()) {
             Query<ProductUnits> query = session.createQuery(
-                    "FROM ProductUnits WHERE supply = :supply", ProductUnits.class);
+                    "from ProductUnits u where u.supply = :supply order by u.arrival, u.id",
+                    ProductUnits.class
+            );
             query.setParameter("supply", supply);
             return query.getResultList();
         }
     }
 
-    private String likeExpr(String param) {
-        return "%" + param + "%";
+    private String likeExpr(String value) {
+        return "%" + value.toLowerCase() + "%";
+    }
+
+    private BigDecimal bd(Integer value) {
+        return value == null ? null : BigDecimal.valueOf(value.longValue());
+    }
+
+    @FunctionalInterface
+    private interface ParameterBinder {
+        void bind(Query<Supplies> query);
     }
 }

@@ -1,9 +1,5 @@
 package ru.msu.cmc.prak.DAO.impl;
 
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.stereotype.Repository;
@@ -25,7 +21,9 @@ public class ProductCategoriesDAOImpl extends CommonDAOImpl<ProductCategories, L
     public List<ProductCategories> getAllByName(String name) {
         try (Session session = sessionFactory.openSession()) {
             Query<ProductCategories> query = session.createQuery(
-                    "FROM ProductCategories WHERE lower(name) LIKE lower(:name)", ProductCategories.class);
+                    "from ProductCategories c where lower(c.name) like :name order by c.id",
+                    ProductCategories.class
+            );
             query.setParameter("name", likeExpr(name));
             return query.getResultList();
         }
@@ -33,27 +31,35 @@ public class ProductCategoriesDAOImpl extends CommonDAOImpl<ProductCategories, L
 
     @Override
     public ProductCategories getSingleByName(String name) {
-        List<ProductCategories> candidates = getAllByName(name);
-        return candidates.size() == 1 ? candidates.getFirst() : null;
+        try (Session session = sessionFactory.openSession()) {
+            Query<ProductCategories> query = session.createQuery(
+                    "from ProductCategories c where lower(c.name) = lower(:name)",
+                    ProductCategories.class
+            );
+            query.setParameter("name", name);
+            query.setMaxResults(1);
+            return query.uniqueResultOptional().orElse(null);
+        }
     }
 
     @Override
     public List<ProductCategories> getByFilter(Filter filter) {
         try (Session session = sessionFactory.openSession()) {
-            CriteriaBuilder builder = session.getCriteriaBuilder();
-            CriteriaQuery<ProductCategories> criteriaQuery = builder.createQuery(ProductCategories.class);
-            Root<ProductCategories> root = criteriaQuery.from(ProductCategories.class);
+            StringBuilder hql = new StringBuilder("from ProductCategories c where 1=1");
+            List<ParameterBinder> binders = new ArrayList<>();
 
-            List<Predicate> predicates = new ArrayList<>();
             if (filter.getName() != null) {
-                predicates.add(builder.like(root.get("name"), likeExpr(filter.getName())));
+                hql.append(" and lower(c.name) like :name");
+                binders.add(q -> q.setParameter("name", likeExpr(filter.getName())));
             }
 
-            if (!predicates.isEmpty()) {
-                criteriaQuery.where(predicates.toArray(new Predicate[0]));
-            }
+            hql.append(" order by c.id");
 
-            return session.createQuery(criteriaQuery).getResultList();
+            Query<ProductCategories> query = session.createQuery(hql.toString(), ProductCategories.class);
+            for (ParameterBinder binder : binders) {
+                binder.bind(query);
+            }
+            return query.getResultList();
         }
     }
 
@@ -61,8 +67,10 @@ public class ProductCategoriesDAOImpl extends CommonDAOImpl<ProductCategories, L
     public List<Products> getProductsInCategory(ProductCategories category) {
         try (Session session = sessionFactory.openSession()) {
             Query<Products> query = session.createQuery(
-                    "FROM Products WHERE category = :cat", Products.class);
-            query.setParameter("cat", category);
+                    "from Products p where p.category = :category order by p.id",
+                    Products.class
+            );
+            query.setParameter("category", category);
             return query.getResultList();
         }
     }
@@ -71,13 +79,20 @@ public class ProductCategoriesDAOImpl extends CommonDAOImpl<ProductCategories, L
     public long countProductsInCategory(ProductCategories category) {
         try (Session session = sessionFactory.openSession()) {
             Query<Long> query = session.createQuery(
-                    "SELECT COUNT(p) FROM Products p WHERE p.category = :cat", Long.class);
-            query.setParameter("cat", category);
+                    "select count(p) from Products p where p.category = :category",
+                    Long.class
+            );
+            query.setParameter("category", category);
             return query.getSingleResult();
         }
     }
 
-    private String likeExpr(String param) {
-        return "%" + param + "%";
+    private String likeExpr(String value) {
+        return "%" + value.toLowerCase() + "%";
+    }
+
+    @FunctionalInterface
+    private interface ParameterBinder {
+        void bind(Query<ProductCategories> query);
     }
 }

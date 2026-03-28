@@ -1,136 +1,143 @@
 package ru.msu.cmc.prak.DAO;
 
-import jakarta.persistence.EntityManagerFactory;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
 import ru.msu.cmc.prak.models.*;
 
-import java.time.Duration;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@TestPropertySource(locations = "classpath:application.properties")
-public class ProductsDAOTest {
-
-    @Autowired
-    private ProductsDAO productsDAO;
-
-    @Autowired
-    private ProductCategoriesDAO productCategoriesDAO;
-
-    @Autowired
-    private ProvidersDAO providersDAO;
-
-    @Autowired
-    private ConsumersDAO consumersDAO;
-
-    @Autowired
-    private SuppliesDAO suppliesDAO;
-
-    @Autowired
-    private OrdersDAO ordersDAO;
-
-    @Autowired
-    private ProductUnitsDAO productUnitsDAO;
-
-    @Autowired
-    private ShelfsWorkloadDAO shelfsWorkloadDAO;
-
-    @Autowired
-    private EntityManagerFactory entityManagerFactory;
+public class ProductsDAOTest extends AbstractDAOTest {
 
     @Test
-    void testGetAllByName() {
+    void testGetAllByNameFound() {
         ProductCategories category = saveCategory(1L, "Техника");
-        saveProduct(100L, category, "Смартфон", UnitsType.kg, SizeType.small, 10, 30);
-        saveProduct(101L, category, "Смартфон Pro", UnitsType.kg, SizeType.large, 20, 60);
+        saveProduct(1L, category, "Ноутбук");
+        saveProduct(2L, category, "Игровой ноутбук");
 
-        List<Products> found = productsDAO.getAllByName("Смартфон");
+        List<Products> found = productsDAO.getAllByName("ноут");
         assertEquals(2, found.size());
     }
 
     @Test
-    void testGetSingleByName() {
+    void testGetAllByNameNotFound() {
         ProductCategories category = saveCategory(1L, "Техника");
-        saveProduct(100L, category, "Планшет", UnitsType.kg, SizeType.middle, 5, 20);
+        saveProduct(1L, category, "Ноутбук");
 
-        Products found = productsDAO.getSingleByName("Планшет");
-        assertNotNull(found);
-        assertEquals(100L, found.getId());
+        assertTrue(productsDAO.getAllByName("стол").isEmpty());
+    }
+
+    @Test
+    void testGetSingleByNameFound() {
+        ProductCategories category = saveCategory(1L, "Техника");
+        saveProduct(1L, category, "Ноутбук");
+
+        Products product = productsDAO.getSingleByName("Ноутбук");
+        assertNotNull(product);
+        assertEquals(1L, product.getId());
+    }
+
+    @Test
+    void testGetSingleByNameNotFound() {
+        ProductCategories category = saveCategory(1L, "Техника");
+        saveProduct(1L, category, "Ноутбук");
+
+        assertNull(productsDAO.getSingleByName("Стол"));
     }
 
     @Test
     void testGetByCategoryId() {
-        ProductCategories cat1 = saveCategory(1L, "Техника");
-        ProductCategories cat2 = saveCategory(2L, "Быт");
-        saveProduct(100L, cat1, "Смартфон", UnitsType.kg, SizeType.small, 10, 30);
-        saveProduct(101L, cat2, "Пылесос", UnitsType.kg, SizeType.large, 1, 100);
+        ProductCategories c1 = saveCategory(1L, "Техника");
+        ProductCategories c2 = saveCategory(2L, "Мебель");
+        saveProduct(1L, c1, "Ноутбук");
+        saveProduct(2L, c2, "Стол");
 
         List<Products> found = productsDAO.getByCategoryId(1L);
         assertEquals(1, found.size());
-        assertEquals(100L, found.getFirst().getId());
+        assertEquals(1L, found.getFirst().getId());
     }
 
     @Test
     void testGetByUnit() {
         ProductCategories category = saveCategory(1L, "Техника");
-        saveProduct(100L, category, "Товар1", UnitsType.kg, SizeType.small, 10, 30);
-        saveProduct(101L, category, "Товар2", UnitsType.g, SizeType.small, 10, 30);
+        saveProduct(1L, category, "Ноутбук", UnitsType.kg, SizeType.small, 1, 30, null);
+        saveProduct(2L, category, "Микросхема", UnitsType.g, SizeType.small, 1, 30, null);
 
         List<Products> found = productsDAO.getByUnit(UnitsType.kg);
         assertEquals(1, found.size());
-        assertEquals(100L, found.getFirst().getId());
     }
 
     @Test
     void testGetBySize() {
         ProductCategories category = saveCategory(1L, "Техника");
-        saveProduct(100L, category, "Товар1", UnitsType.kg, SizeType.large, 10, 30);
-        saveProduct(101L, category, "Товар2", UnitsType.kg, SizeType.small, 10, 30);
+        saveProduct(1L, category, "Ноутбук", UnitsType.kg, SizeType.large, 1, 30, null);
+        saveProduct(2L, category, "Мышь", UnitsType.g, SizeType.small, 1, 30, null);
 
         List<Products> found = productsDAO.getBySize(SizeType.large);
         assertEquals(1, found.size());
-        assertEquals(100L, found.getFirst().getId());
     }
 
     @Test
-    void testGetByFilter() {
-        ProductCategories cat1 = saveCategory(1L, "Электроника");
-        ProductCategories cat2 = saveCategory(2L, "Мебель");
+    void testGetByFilterAllNulls() {
+        ProductCategories c1 = saveCategory(1L, "Техника");
+        ProductCategories c2 = saveCategory(2L, "Мебель");
+        saveProduct(1L, c1, "Ноутбук");
+        saveProduct(2L, c2, "Стол");
 
-        saveProduct(100L, cat1, "Ноутбук", UnitsType.kg, SizeType.large, 1, 365);
-        saveProduct(101L, cat2, "Стул", UnitsType.kg, SizeType.small, 1, 30);
+        ProductsDAO.Filter filter = ProductsDAO.getFilterBuilder().build();
+        List<Products> found = productsDAO.getByFilter(filter);
+        assertEquals(2, found.size());
+    }
+
+    @Test
+    void testGetByFilterAllConstraintsAndLargeTrue() {
+        ProductCategories c1 = saveCategory(1L, "Электроника");
+        ProductCategories c2 = saveCategory(2L, "Мебель");
+
+        saveProduct(1L, c1, "Ноутбук Pro", UnitsType.kg, SizeType.large, 2, 100, "desc");
+        saveProduct(2L, c2, "Стол", UnitsType.kg, SizeType.large, 1, 20, "desk");
 
         ProductsDAO.Filter filter = ProductsDAO.getFilterBuilder()
-                .categoryName("Электро")
+                .id(1L)
+                .name("ноут")
+                .categoryId(1L)
+                .categoryName("электро")
+                .unit(UnitsType.kg)
                 .size(SizeType.large)
+                .minStorageLife(java.time.Duration.ofDays(50))
+                .maxStorageLife(java.time.Duration.ofDays(150))
                 .large(true)
-                .minStorageLife(Duration.ofDays(300))
                 .build();
 
         List<Products> found = productsDAO.getByFilter(filter);
         assertEquals(1, found.size());
-        assertEquals(100L, found.getFirst().getId());
+        assertEquals(1L, found.getFirst().getId());
+    }
+
+    @Test
+    void testGetByFilterLargeFalseBranch() {
+        ProductCategories c1 = saveCategory(1L, "Электроника");
+        saveProduct(1L, c1, "Ноутбук", UnitsType.kg, SizeType.large, 1, 100, null);
+        saveProduct(2L, c1, "Мышь", UnitsType.g, SizeType.small, 1, 100, null);
+
+        ProductsDAO.Filter filter = ProductsDAO.getFilterBuilder()
+                .large(false)
+                .build();
+
+        List<Products> found = productsDAO.getByFilter(filter);
+        assertEquals(2, found.size());
     }
 
     @Test
     void testGetSuppliesForProduct() {
-        ProductCategories category = saveCategory(1L, "Техника");
-        Products product = saveProduct(100L, category, "Ноутбук", UnitsType.kg, SizeType.large, 1, 365);
-        Providers provider = saveProvider(1L, "Поставщик1");
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Providers provider = saveProvider(1L, "ООО Поставка");
 
-        saveSupply(1L, product, provider);
-        saveSupply(2L, product, provider);
+        saveSupply(1L, product, provider, BigDecimal.valueOf(10), LocalDateTime.of(2025, 1, 1, 10, 0), false);
+        saveSupply(2L, product, provider, BigDecimal.valueOf(20), LocalDateTime.of(2025, 1, 2, 10, 0), true);
 
         List<Supplies> found = productsDAO.getSuppliesForProduct(product);
         assertEquals(2, found.size());
@@ -138,12 +145,12 @@ public class ProductsDAOTest {
 
     @Test
     void testGetOrdersForProduct() {
-        ProductCategories category = saveCategory(1L, "Техника");
-        Products product = saveProduct(100L, category, "Ноутбук", UnitsType.kg, SizeType.large, 1, 365);
-        Consumers consumer = saveConsumer(1L, "Клиент1");
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Consumers consumer = saveConsumer(1L, "Иван");
 
-        saveOrder(1L, product, consumer);
-        saveOrder(2L, product, consumer);
+        saveOrder(1L, product, consumer, BigDecimal.valueOf(5), LocalDateTime.of(2025, 2, 1, 10, 0), false);
+        saveOrder(2L, product, consumer, BigDecimal.valueOf(7), LocalDateTime.of(2025, 2, 2, 10, 0), true);
 
         List<Orders> found = productsDAO.getOrdersForProduct(product);
         assertEquals(2, found.size());
@@ -151,130 +158,31 @@ public class ProductsDAOTest {
 
     @Test
     void testGetUnitsForProduct() {
-        ProductCategories category = saveCategory(1L, "Техника");
-        Products product = saveProduct(100L, category, "Ноутбук", UnitsType.kg, SizeType.large, 1, 365);
-        Providers provider = saveProvider(1L, "Поставщик1");
-        Supplies supply = saveSupply(1L, product, provider);
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Providers provider = saveProvider(1L, "ООО Поставка");
+        Supplies supply = saveSupply(1L, product, provider, BigDecimal.valueOf(20), LocalDateTime.of(2025, 3, 1, 10, 0), false);
         ShelfsWorkload shelf = saveShelf(1L, 101, 10);
 
-        saveUnit(1L, product, supply, shelf, null);
-        saveUnit(2L, product, supply, shelf, null);
+        saveUnit(1L, product, LocalDateTime.of(2025, 3, 1, 11, 0), BigDecimal.ONE, shelf, supply, null);
+        saveUnit(2L, product, LocalDateTime.of(2025, 3, 2, 11, 0), BigDecimal.TWO, shelf, supply, null);
 
         List<ProductUnits> found = productsDAO.getUnitsForProduct(product);
         assertEquals(2, found.size());
     }
 
     @Test
-    void testGetCategory() {
-        ProductCategories category = saveCategory(1L, "Техника");
-        Products product = saveProduct(100L, category, "Ноутбук", UnitsType.kg, SizeType.large, 1, 365);
+    void testGetCategoryNonNull() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
 
         ProductCategories found = productsDAO.getCategory(product);
         assertNotNull(found);
         assertEquals(1L, found.getId());
     }
 
-    private ProductCategories saveCategory(Long id, String name) {
-        ProductCategories category = new ProductCategories();
-        category.setId(id);
-        category.setName(name);
-        productCategoriesDAO.save(category);
-        return category;
-    }
-
-    private Products saveProduct(Long id, ProductCategories category, String name,
-                                 UnitsType unit, SizeType size, Integer unitsForOne, int storageDays) {
-        Products product = new Products();
-        product.setId(id);
-        product.setCategory(category);
-        product.setName(name);
-        product.setUnit(unit);
-        product.setProduct_size(size);
-        product.setUnitsForOne(unitsForOne);
-        product.setStorageLife(Duration.ofDays(storageDays));
-        productsDAO.save(product);
-        return product;
-    }
-
-    private Providers saveProvider(Long id, String name) {
-        Providers provider = new Providers();
-        provider.setId(id);
-        provider.setName(name);
-        provider.setPhoneNum("111");
-        provider.setEmail("p" + id + "@mail.test");
-        providersDAO.save(provider);
-        return provider;
-    }
-
-    private Consumers saveConsumer(Long id, String name) {
-        Consumers consumer = new Consumers();
-        consumer.setId(id);
-        consumer.setName(name);
-        consumer.setPhoneNum("222");
-        consumer.setEmail("c" + id + "@mail.test");
-        consumersDAO.save(consumer);
-        return consumer;
-    }
-
-    private Supplies saveSupply(Long id, Products product, Providers provider) {
-        Supplies supply = new Supplies();
-        supply.setId(id);
-        supply.setProduct(product);
-        supply.setProvider(provider);
-        supply.setAmount(java.math.BigDecimal.valueOf(10));
-        supply.setTime(java.time.LocalDateTime.of(2026, 1, 1, 10, 0));
-        suppliesDAO.save(supply);
-        return supply;
-    }
-
-    private Orders saveOrder(Long id, Products product, Consumers consumer) {
-        Orders order = new Orders();
-        order.setId(id);
-        order.setProduct(product);
-        order.setConsumer(consumer);
-        order.setAmount(java.math.BigDecimal.valueOf(5));
-        order.setTime(java.time.LocalDateTime.of(2026, 1, 2, 10, 0));
-        ordersDAO.save(order);
-        return order;
-    }
-
-    private ShelfsWorkload saveShelf(Long id, Integer roomNum, Integer workload) {
-        ShelfsWorkload shelf = new ShelfsWorkload();
-        shelf.setId(id);
-        shelf.setRoomNum(roomNum);
-        shelf.setWorkloadCount(workload);
-        shelfsWorkloadDAO.save(shelf);
-        return shelf;
-    }
-
-    private ProductUnits saveUnit(Long id, Products product, Supplies supply, ShelfsWorkload shelf, Orders order) {
-        ProductUnits unit = new ProductUnits();
-        unit.setId(id);
-        unit.setProduct(product);
-        unit.setSupply(supply);
-        unit.setShelf(shelf);
-        unit.setOrder(order);
-        unit.setArrival(java.time.LocalDateTime.of(2026, 1, 3, 10, 0));
-        unit.setAmount(java.math.BigDecimal.valueOf(2));
-        productUnitsDAO.save(unit);
-        return unit;
-    }
-
-    @BeforeAll
-    @AfterEach
-    void annihilation() {
-        SessionFactory sessionFactory = entityManagerFactory.unwrap(SessionFactory.class);
-        try (Session session = sessionFactory.openSession()) {
-            session.beginTransaction();
-            session.createNativeQuery("TRUNCATE TABLE product_units CASCADE").executeUpdate();
-            session.createNativeQuery("TRUNCATE TABLE orders CASCADE").executeUpdate();
-            session.createNativeQuery("TRUNCATE TABLE supplies CASCADE").executeUpdate();
-            session.createNativeQuery("TRUNCATE TABLE products CASCADE").executeUpdate();
-            session.createNativeQuery("TRUNCATE TABLE consumers CASCADE").executeUpdate();
-            session.createNativeQuery("TRUNCATE TABLE providers CASCADE").executeUpdate();
-            session.createNativeQuery("TRUNCATE TABLE shelfs_workload CASCADE").executeUpdate();
-            session.createNativeQuery("TRUNCATE TABLE product_categories CASCADE").executeUpdate();
-            session.getTransaction().commit();
-        }
+    @Test
+    void testGetCategoryNull() {
+        assertNull(productsDAO.getCategory(null));
     }
 }

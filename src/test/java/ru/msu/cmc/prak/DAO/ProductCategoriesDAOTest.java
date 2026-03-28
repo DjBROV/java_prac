@@ -1,41 +1,15 @@
 package ru.msu.cmc.prak.DAO;
 
-import jakarta.persistence.EntityManagerFactory;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
 import ru.msu.cmc.prak.models.ProductCategories;
 import ru.msu.cmc.prak.models.Products;
-import ru.msu.cmc.prak.models.SizeType;
-import ru.msu.cmc.prak.models.UnitsType;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@TestPropertySource(locations = "classpath:application.properties")
-public class ProductCategoriesDAOTest {
-
-    @Autowired
-    private ProductCategoriesDAO productCategoriesDAO;
-
-    @Autowired
-    private ProductsDAO productsDAO;
-
-    @Autowired
-    private EntityManagerFactory entityManagerFactory;
+public class ProductCategoriesDAOTest extends AbstractDAOTest {
 
     @Test
     void testCRUD() {
@@ -61,7 +35,6 @@ public class ProductCategoriesDAOTest {
     @Test
     void testGetAll() {
         List<ProductCategories> categories = new ArrayList<>();
-
         ProductCategories cat1 = new ProductCategories();
         cat1.setId(1L);
         cat1.setName("Электроника");
@@ -72,7 +45,6 @@ public class ProductCategoriesDAOTest {
 
         categories.add(cat1);
         categories.add(cat2);
-
         productCategoriesDAO.saveCollection(categories);
 
         List<ProductCategories> all = (List<ProductCategories>) productCategoriesDAO.getAll();
@@ -80,28 +52,25 @@ public class ProductCategoriesDAOTest {
     }
 
     @Test
-    void testGetAllByName() {
-        ProductCategories cat1 = new ProductCategories();
-        cat1.setId(1L);
-        cat1.setName("Электроника");
-
-        ProductCategories cat2 = new ProductCategories();
-        cat2.setId(2L);
-        cat2.setName("Бытовая электроника");
-
-        productCategoriesDAO.save(cat1);
-        productCategoriesDAO.save(cat2);
+    void testGetAllByNameFound() {
+        saveCategory(1L, "Электроника");
+        saveCategory(2L, "Бытовая электроника");
 
         List<ProductCategories> found = productCategoriesDAO.getAllByName("электроника");
         assertEquals(2, found.size());
     }
 
     @Test
-    void testGetSingleByName() {
-        ProductCategories cat = new ProductCategories();
-        cat.setId(1L);
-        cat.setName("Электроника");
-        productCategoriesDAO.save(cat);
+    void testGetAllByNameNotFound() {
+        saveCategory(1L, "Электроника");
+
+        List<ProductCategories> found = productCategoriesDAO.getAllByName("мебель");
+        assertTrue(found.isEmpty());
+    }
+
+    @Test
+    void testGetSingleByNameFound() {
+        saveCategory(1L, "Электроника");
 
         ProductCategories found = productCategoriesDAO.getSingleByName("Электроника");
         assertNotNull(found);
@@ -109,20 +78,18 @@ public class ProductCategoriesDAOTest {
     }
 
     @Test
-    void testGetByFilter() {
-        ProductCategories cat1 = new ProductCategories();
-        cat1.setId(1L);
-        cat1.setName("Электроника");
+    void testGetSingleByNameNotFound() {
+        saveCategory(1L, "Электроника");
+        assertNull(productCategoriesDAO.getSingleByName("Мебель"));
+    }
 
-        ProductCategories cat2 = new ProductCategories();
-        cat2.setId(2L);
-        cat2.setName("Бытовая химия");
-
-        productCategoriesDAO.save(cat1);
-        productCategoriesDAO.save(cat2);
+    @Test
+    void testGetByFilterWithName() {
+        saveCategory(1L, "Электроника");
+        saveCategory(2L, "Бытовая химия");
 
         ProductCategoriesDAO.Filter filter = ProductCategoriesDAO.getFilterBuilder()
-                .name("Электроника")
+                .name("электро")
                 .build();
 
         List<ProductCategories> filtered = productCategoriesDAO.getByFilter(filter);
@@ -131,78 +98,39 @@ public class ProductCategoriesDAOTest {
     }
 
     @Test
+    void testGetByFilterWithoutNameReturnsAll() {
+        saveCategory(1L, "Электроника");
+        saveCategory(2L, "Бытовая химия");
+
+        ProductCategoriesDAO.Filter filter = ProductCategoriesDAO.getFilterBuilder().build();
+
+        List<ProductCategories> filtered = productCategoriesDAO.getByFilter(filter);
+        assertEquals(2, filtered.size());
+    }
+
+    @Test
     void testGetProductsInCategory() {
-        ProductCategories category = new ProductCategories();
-        category.setId(1L);
-        category.setName("Электроника");
-        productCategoriesDAO.save(category);
-
-        Products product1 = new Products();
-        product1.setId(100L);
-        product1.setCategory(category);
-        product1.setName("Смартфон");
-        product1.setUnit(UnitsType.kg);
-        product1.setProduct_size(SizeType.small);
-        product1.setUnitsForOne(1);
-        product1.setStorageLife(Duration.ofDays(730));
-
-        Products product2 = new Products();
-        product2.setId(101L);
-        product2.setCategory(category);
-        product2.setName("Ноутбук");
-        product2.setUnit(UnitsType.kg);
-        product2.setProduct_size(SizeType.large);
-        product2.setUnitsForOne(1);
-        product2.setStorageLife(Duration.ofDays(730));
-
-        productsDAO.save(product1);
-        productsDAO.save(product2);
+        ProductCategories category = saveCategory(1L, "Электроника");
+        saveProduct(100L, category, "Смартфон");
+        saveProduct(101L, category, "Ноутбук");
 
         List<Products> productsInCategory = productCategoriesDAO.getProductsInCategory(category);
         assertEquals(2, productsInCategory.size());
     }
 
     @Test
-    void testCountProductsInCategory() {
-        ProductCategories category = new ProductCategories();
-        category.setId(1L);
-        category.setName("Электроника");
-        productCategoriesDAO.save(category);
-
-        Products product1 = new Products();
-        product1.setId(100L);
-        product1.setCategory(category);
-        product1.setName("Смартфон");
-        product1.setUnit(UnitsType.kg);
-        product1.setProduct_size(SizeType.small);
-        product1.setUnitsForOne(1);
-        product1.setStorageLife(Duration.ofDays(730));
-
-        Products product2 = new Products();
-        product2.setId(101L);
-        product2.setCategory(category);
-        product2.setName("Ноутбук");
-        product2.setUnit(UnitsType.kg);
-        product2.setProduct_size(SizeType.large);
-        product2.setUnitsForOne(1);
-        product2.setStorageLife(Duration.ofDays(730));
-
-        productsDAO.save(product1);
-        productsDAO.save(product2);
+    void testCountProductsInCategoryNonZero() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        saveProduct(100L, category, "Смартфон");
+        saveProduct(101L, category, "Ноутбук");
 
         long count = productCategoriesDAO.countProductsInCategory(category);
         assertEquals(2, count);
     }
 
-    @BeforeAll
-    @AfterEach
-    void annihilation() {
-        SessionFactory sessionFactory = entityManagerFactory.unwrap(SessionFactory.class);
-        try (Session session = sessionFactory.openSession()) {
-            session.beginTransaction();
-            session.createNativeQuery("TRUNCATE TABLE products CASCADE").executeUpdate();
-            session.createNativeQuery("TRUNCATE TABLE product_categories CASCADE").executeUpdate();
-            session.getTransaction().commit();
-        }
+    @Test
+    void testCountProductsInCategoryZero() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        assertEquals(0, productCategoriesDAO.countProductsInCategory(category));
     }
 }
