@@ -8,10 +8,7 @@ import java.util.List;
 
 public interface ConsumersDAO extends CommonDAO<Consumers, Long> {
 
-    List<Consumers> getAllByName(String name);
-    Consumers getSingleByName(String name);
-    List<Consumers> getByPhoneNum(String phoneNum);
-    List<Consumers> getByEmail(String email);
+
 
     /**
      * Поиск потребителей по фильтрам.

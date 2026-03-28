@@ -7,7 +7,6 @@ import ru.msu.cmc.prak.DAO.SuppliesDAO;
 import ru.msu.cmc.prak.models.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,55 +15,6 @@ public class SuppliesDAOImpl extends CommonDAOImpl<Supplies, Long> implements Su
 
     public SuppliesDAOImpl() {
         super(Supplies.class);
-    }
-
-    @Override
-    public List<Supplies> getByProductId(Long productId) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<Supplies> query = session.createQuery(
-                    "from Supplies s where s.product.id = :productId order by s.time, s.id",
-                    Supplies.class
-            );
-            query.setParameter("productId", productId);
-            return query.getResultList();
-        }
-    }
-
-    @Override
-    public List<Supplies> getByProviderId(Long providerId) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<Supplies> query = session.createQuery(
-                    "from Supplies s where s.provider.id = :providerId order by s.time, s.id",
-                    Supplies.class
-            );
-            query.setParameter("providerId", providerId);
-            return query.getResultList();
-        }
-    }
-
-    @Override
-    public List<Supplies> getByCompleted(Boolean completed) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<Supplies> query = session.createQuery(
-                    "from Supplies s where s.completed = :completed order by s.time, s.id",
-                    Supplies.class
-            );
-            query.setParameter("completed", completed);
-            return query.getResultList();
-        }
-    }
-
-    @Override
-    public List<Supplies> getByTimeRange(LocalDateTime from, LocalDateTime to) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<Supplies> query = session.createQuery(
-                    "from Supplies s where s.time between :from and :to order by s.time, s.id",
-                    Supplies.class
-            );
-            query.setParameter("from", from);
-            query.setParameter("to", to);
-            return query.getResultList();
-        }
     }
 
     @Override

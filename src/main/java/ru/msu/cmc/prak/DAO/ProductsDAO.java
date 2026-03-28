@@ -9,31 +9,6 @@ import java.util.List;
 public interface ProductsDAO extends CommonDAO<Products, Long> {
 
     /**
-     * Поиск продуктов по названию (like).
-     */
-    List<Products> getAllByName(String name);
-
-    /**
-     * Получение продукта по точному названию.
-     */
-    Products getSingleByName(String name);
-
-    /**
-     * Получение продуктов, принадлежащих определённой категории.
-     */
-    List<Products> getByCategoryId(Long categoryId);
-
-    /**
-     * Поиск продуктов по единице измерения (enum).
-     */
-    List<Products> getByUnit(UnitsType unit);
-
-    /**
-     * Поиск продуктов по размеру (enum).
-     */
-    List<Products> getBySize(SizeType size);
-
-    /**
      * Основной метод поиска продуктов с расширенным набором фильтров.
      * Используется на странице "Товары" для отображения списка товаров
      * с учётом всех заданных пользователем критериев.

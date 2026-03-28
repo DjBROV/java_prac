@@ -10,7 +10,6 @@ import ru.msu.cmc.prak.models.ProductUnits;
 import ru.msu.cmc.prak.models.Products;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,55 +18,6 @@ public class OrdersDAOImpl extends CommonDAOImpl<Orders, Long> implements Orders
 
     public OrdersDAOImpl() {
         super(Orders.class);
-    }
-
-    @Override
-    public List<Orders> getByProductId(Long productId) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<Orders> query = session.createQuery(
-                    "from Orders o where o.product.id = :productId order by o.time, o.id",
-                    Orders.class
-            );
-            query.setParameter("productId", productId);
-            return query.getResultList();
-        }
-    }
-
-    @Override
-    public List<Orders> getByConsumerId(Long consumerId) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<Orders> query = session.createQuery(
-                    "from Orders o where o.consumer.id = :consumerId order by o.time, o.id",
-                    Orders.class
-            );
-            query.setParameter("consumerId", consumerId);
-            return query.getResultList();
-        }
-    }
-
-    @Override
-    public List<Orders> getByCompleted(Boolean completed) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<Orders> query = session.createQuery(
-                    "from Orders o where o.completed = :completed order by o.time, o.id",
-                    Orders.class
-            );
-            query.setParameter("completed", completed);
-            return query.getResultList();
-        }
-    }
-
-    @Override
-    public List<Orders> getByTimeRange(LocalDateTime from, LocalDateTime to) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<Orders> query = session.createQuery(
-                    "from Orders o where o.time between :from and :to order by o.time, o.id",
-                    Orders.class
-            );
-            query.setParameter("from", from);
-            query.setParameter("to", to);
-            return query.getResultList();
-        }
     }
 
     @Override
@@ -80,47 +30,38 @@ public class OrdersDAOImpl extends CommonDAOImpl<Orders, Long> implements Orders
                 hql.append(" and o.id = :id");
                 binders.add(q -> q.setParameter("id", filter.getId()));
             }
-
             if (filter.getProductId() != null) {
                 hql.append(" and o.product.id = :productId");
                 binders.add(q -> q.setParameter("productId", filter.getProductId()));
             }
-
             if (filter.getConsumerId() != null) {
                 hql.append(" and o.consumer.id = :consumerId");
                 binders.add(q -> q.setParameter("consumerId", filter.getConsumerId()));
             }
-
             if (filter.getProductName() != null) {
                 hql.append(" and lower(o.product.name) like :productName");
                 binders.add(q -> q.setParameter("productName", likeExpr(filter.getProductName())));
             }
-
             if (filter.getConsumerName() != null) {
                 hql.append(" and lower(o.consumer.name) like :consumerName");
                 binders.add(q -> q.setParameter("consumerName", likeExpr(filter.getConsumerName())));
             }
-
             if (filter.getAmountFrom() != null) {
                 hql.append(" and o.amount >= :amountFrom");
                 binders.add(q -> q.setParameter("amountFrom", bd(filter.getAmountFrom())));
             }
-
             if (filter.getAmountTo() != null) {
                 hql.append(" and o.amount <= :amountTo");
                 binders.add(q -> q.setParameter("amountTo", bd(filter.getAmountTo())));
             }
-
             if (filter.getTimeFrom() != null) {
                 hql.append(" and o.time >= :timeFrom");
                 binders.add(q -> q.setParameter("timeFrom", filter.getTimeFrom()));
             }
-
             if (filter.getTimeTo() != null) {
                 hql.append(" and o.time <= :timeTo");
                 binders.add(q -> q.setParameter("timeTo", filter.getTimeTo()));
             }
-
             if (filter.getCompleted() != null) {
                 hql.append(" and o.completed = :completed");
                 binders.add(q -> q.setParameter("completed", filter.getCompleted()));
@@ -132,7 +73,6 @@ public class OrdersDAOImpl extends CommonDAOImpl<Orders, Long> implements Orders
             for (ParameterBinder binder : binders) {
                 binder.bind(query);
             }
-
             return query.getResultList();
         }
     }

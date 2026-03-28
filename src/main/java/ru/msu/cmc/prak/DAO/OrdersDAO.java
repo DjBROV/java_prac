@@ -8,10 +8,6 @@ import java.util.List;
 
 public interface OrdersDAO extends CommonDAO<Orders, Long> {
 
-    List<Orders> getByProductId(Long productId);
-    List<Orders> getByConsumerId(Long consumerId);
-    List<Orders> getByCompleted(Boolean completed);
-    List<Orders> getByTimeRange(LocalDateTime from, LocalDateTime to);
 
     /**
      * Поиск заказов по фильтрам.

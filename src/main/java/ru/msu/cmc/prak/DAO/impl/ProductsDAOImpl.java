@@ -17,67 +17,6 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
     }
 
     @Override
-    public List<Products> getAllByName(String name) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<Products> query = session.createQuery(
-                    "from Products p where lower(p.name) like :name order by p.id",
-                    Products.class
-            );
-            query.setParameter("name", likeExpr(name));
-            return query.getResultList();
-        }
-    }
-
-    @Override
-    public Products getSingleByName(String name) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<Products> query = session.createQuery(
-                    "from Products p where lower(p.name) = lower(:name)",
-                    Products.class
-            );
-            query.setParameter("name", name);
-            query.setMaxResults(1);
-            return query.uniqueResultOptional().orElse(null);
-        }
-    }
-
-    @Override
-    public List<Products> getByCategoryId(Long categoryId) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<Products> query = session.createQuery(
-                    "from Products p where p.category.id = :categoryId order by p.id",
-                    Products.class
-            );
-            query.setParameter("categoryId", categoryId);
-            return query.getResultList();
-        }
-    }
-
-    @Override
-    public List<Products> getByUnit(UnitsType unit) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<Products> query = session.createQuery(
-                    "from Products p where p.unit = :unit order by p.id",
-                    Products.class
-            );
-            query.setParameter("unit", unit);
-            return query.getResultList();
-        }
-    }
-
-    @Override
-    public List<Products> getBySize(SizeType size) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<Products> query = session.createQuery(
-                    "from Products p where p.product_size = :size order by p.id",
-                    Products.class
-            );
-            query.setParameter("size", size);
-            return query.getResultList();
-        }
-    }
-
-    @Override
     public List<Products> getByFilter(Filter filter) {
         try (Session session = sessionFactory.openSession()) {
             StringBuilder hql = new StringBuilder("from Products p where 1=1");

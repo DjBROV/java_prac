@@ -15,50 +15,10 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ProvidersDAOTest extends AbstractDAOTest {
 
     @Test
-    void testGetAllByNameFound() {
-        saveProvider(1L, "ООО Альфа");
-        saveProvider(2L, "ООО Альфа Логистик");
-        assertEquals(2, providersDAO.getAllByName("альфа").size());
-    }
-
-    @Test
-    void testGetAllByNameNotFound() {
-        saveProvider(1L, "ООО Альфа");
-        assertTrue(providersDAO.getAllByName("бета").isEmpty());
-    }
-
-    @Test
-    void testGetSingleByNameFound() {
-        saveProvider(1L, "ООО Альфа");
-        Providers found = providersDAO.getSingleByName("ООО Альфа");
-        assertNotNull(found);
-        assertEquals(1L, found.getId());
-    }
-
-    @Test
-    void testGetSingleByNameNotFound() {
-        saveProvider(1L, "ООО Альфа");
-        assertNull(providersDAO.getSingleByName("ООО Бета"));
-    }
-
-    @Test
-    void testGetByPhoneNum() {
-        saveProvider(1L, "ООО Альфа", null, null, "12345", "a@test");
-        saveProvider(2L, "ООО Бета", null, null, "99999", "b@test");
-        assertEquals(1, providersDAO.getByPhoneNum("123").size());
-    }
-
-    @Test
-    void testGetByEmail() {
-        saveProvider(1L, "ООО Альфа", null, null, "12345", "alpha@test");
-        saveProvider(2L, "ООО Бета", null, null, "99999", "beta@test");
-        assertEquals(1, providersDAO.getByEmail("alpha").size());
-    }
-
-    @Test
     void testGetByFilterAllNulls() {
         saveProvider(1L, "ООО Альфа");
         saveProvider(2L, "ООО Бета");
+
         ProvidersDAO.Filter filter = ProvidersDAO.getFilterBuilder().build();
         assertEquals(2, providersDAO.getByFilter(filter).size());
     }
@@ -81,6 +41,8 @@ public class ProvidersDAOTest extends AbstractDAOTest {
         assertEquals(1L, found.getFirst().getId());
     }
 
+
+
     @Test
     void testGetSuppliesFromProvider() {
         Providers provider = saveProvider(1L, "ООО Альфа");
@@ -93,4 +55,6 @@ public class ProvidersDAOTest extends AbstractDAOTest {
         List<Supplies> found = providersDAO.getSuppliesFromProvider(provider);
         assertEquals(2, found.size());
     }
+
+
 }

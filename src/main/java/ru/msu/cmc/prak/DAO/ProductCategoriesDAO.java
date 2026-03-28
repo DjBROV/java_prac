@@ -9,17 +9,6 @@ import java.util.List;
 public interface ProductCategoriesDAO extends CommonDAO<ProductCategories, Long> {
 
     /**
-     * Поиск категорий по имени (частичное совпадение).
-     * Используется в панели фильтров на странице "Категории товаров".
-     */
-    List<ProductCategories> getAllByName(String name);
-
-    /**
-     * Получение категории по точному имени (например, для проверки уникальности).
-     */
-    ProductCategories getSingleByName(String name);
-
-    /**
      * Поиск категорий по набору фильтров (id, имя).
      */
     List<ProductCategories> getByFilter(Filter filter);

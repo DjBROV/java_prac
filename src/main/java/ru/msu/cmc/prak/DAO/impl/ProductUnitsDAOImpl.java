@@ -7,7 +7,6 @@ import ru.msu.cmc.prak.DAO.ProductUnitsDAO;
 import ru.msu.cmc.prak.models.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,67 +15,6 @@ public class ProductUnitsDAOImpl extends CommonDAOImpl<ProductUnits, Long> imple
 
     public ProductUnitsDAOImpl() {
         super(ProductUnits.class);
-    }
-
-    @Override
-    public List<ProductUnits> getByProductId(Long productId) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<ProductUnits> query = session.createQuery(
-                    "from ProductUnits u where u.product.id = :productId order by u.arrival, u.id",
-                    ProductUnits.class
-            );
-            query.setParameter("productId", productId);
-            return query.getResultList();
-        }
-    }
-
-    @Override
-    public List<ProductUnits> getByShelfNum(Long shelfNum) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<ProductUnits> query = session.createQuery(
-                    "from ProductUnits u where u.shelf.id = :shelfNum order by u.arrival, u.id",
-                    ProductUnits.class
-            );
-            query.setParameter("shelfNum", shelfNum);
-            return query.getResultList();
-        }
-    }
-
-    @Override
-    public List<ProductUnits> getBySupplyId(Long supplyId) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<ProductUnits> query = session.createQuery(
-                    "from ProductUnits u where u.supply.id = :supplyId order by u.arrival, u.id",
-                    ProductUnits.class
-            );
-            query.setParameter("supplyId", supplyId);
-            return query.getResultList();
-        }
-    }
-
-    @Override
-    public List<ProductUnits> getByOrderId(Long orderId) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<ProductUnits> query = session.createQuery(
-                    "from ProductUnits u where u.order.id = :orderId order by u.arrival, u.id",
-                    ProductUnits.class
-            );
-            query.setParameter("orderId", orderId);
-            return query.getResultList();
-        }
-    }
-
-    @Override
-    public List<ProductUnits> getByArrivalRange(LocalDateTime from, LocalDateTime to) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<ProductUnits> query = session.createQuery(
-                    "from ProductUnits u where u.arrival between :from and :to order by u.arrival, u.id",
-                    ProductUnits.class
-            );
-            query.setParameter("from", from);
-            query.setParameter("to", to);
-            return query.getResultList();
-        }
     }
 
     @Override

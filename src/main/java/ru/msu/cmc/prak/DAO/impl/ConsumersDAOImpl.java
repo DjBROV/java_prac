@@ -18,55 +18,6 @@ public class ConsumersDAOImpl extends CommonDAOImpl<Consumers, Long> implements 
     }
 
     @Override
-    public List<Consumers> getAllByName(String name) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<Consumers> query = session.createQuery(
-                    "from Consumers c where lower(c.name) like :name order by c.id",
-                    Consumers.class
-            );
-            query.setParameter("name", likeExpr(name));
-            return query.getResultList();
-        }
-    }
-
-    @Override
-    public Consumers getSingleByName(String name) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<Consumers> query = session.createQuery(
-                    "from Consumers c where lower(c.name) = lower(:name)",
-                    Consumers.class
-            );
-            query.setParameter("name", name);
-            query.setMaxResults(1);
-            return query.uniqueResultOptional().orElse(null);
-        }
-    }
-
-    @Override
-    public List<Consumers> getByPhoneNum(String phoneNum) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<Consumers> query = session.createQuery(
-                    "from Consumers c where lower(c.phoneNum) like :phone order by c.id",
-                    Consumers.class
-            );
-            query.setParameter("phone", likeExpr(phoneNum));
-            return query.getResultList();
-        }
-    }
-
-    @Override
-    public List<Consumers> getByEmail(String email) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<Consumers> query = session.createQuery(
-                    "from Consumers c where lower(c.email) like :email order by c.id",
-                    Consumers.class
-            );
-            query.setParameter("email", likeExpr(email));
-            return query.getResultList();
-        }
-    }
-
-    @Override
     public List<Consumers> getByFilter(Filter filter) {
         try (Session session = sessionFactory.openSession()) {
             StringBuilder hql = new StringBuilder("from Consumers c where 1=1");

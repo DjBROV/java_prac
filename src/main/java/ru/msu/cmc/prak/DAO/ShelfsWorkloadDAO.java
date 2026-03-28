@@ -9,11 +9,6 @@ import java.util.List;
 public interface ShelfsWorkloadDAO extends CommonDAO<ShelfsWorkload, Long> {
 
     /**
-     * Поиск полок по номеру комнаты.
-     */
-    List<ShelfsWorkload> getByRoomNum(Integer roomNum);
-
-    /**
      * Поиск полок с достаточным свободным местом для размещения указанного количества.
      * Используется при создании поставки для резервирования места.
      * @param requiredUnits количество единиц, которые нужно разместить

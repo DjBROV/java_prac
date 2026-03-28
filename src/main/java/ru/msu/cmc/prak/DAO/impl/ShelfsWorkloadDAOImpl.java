@@ -20,18 +20,6 @@ public class ShelfsWorkloadDAOImpl extends CommonDAOImpl<ShelfsWorkload, Long> i
     }
 
     @Override
-    public List<ShelfsWorkload> getByRoomNum(Integer roomNum) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<ShelfsWorkload> query = session.createQuery(
-                    "from ShelfsWorkload s where s.roomNum = :roomNum order by s.id",
-                    ShelfsWorkload.class
-            );
-            query.setParameter("roomNum", roomNum);
-            return query.getResultList();
-        }
-    }
-
-    @Override
     public List<ShelfsWorkload> getShelvesWithFreeSpace(int requiredUnits) {
         try (Session session = sessionFactory.openSession()) {
             Query<ShelfsWorkload> query = session.createQuery(

@@ -35,6 +35,7 @@ public class ProductCategoriesDAOTest extends AbstractDAOTest {
     @Test
     void testGetAll() {
         List<ProductCategories> categories = new ArrayList<>();
+
         ProductCategories cat1 = new ProductCategories();
         cat1.setId(1L);
         cat1.setName("Электроника");
@@ -49,38 +50,6 @@ public class ProductCategoriesDAOTest extends AbstractDAOTest {
 
         List<ProductCategories> all = (List<ProductCategories>) productCategoriesDAO.getAll();
         assertEquals(2, all.size());
-    }
-
-    @Test
-    void testGetAllByNameFound() {
-        saveCategory(1L, "Электроника");
-        saveCategory(2L, "Бытовая электроника");
-
-        List<ProductCategories> found = productCategoriesDAO.getAllByName("электроника");
-        assertEquals(2, found.size());
-    }
-
-    @Test
-    void testGetAllByNameNotFound() {
-        saveCategory(1L, "Электроника");
-
-        List<ProductCategories> found = productCategoriesDAO.getAllByName("мебель");
-        assertTrue(found.isEmpty());
-    }
-
-    @Test
-    void testGetSingleByNameFound() {
-        saveCategory(1L, "Электроника");
-
-        ProductCategories found = productCategoriesDAO.getSingleByName("Электроника");
-        assertNotNull(found);
-        assertEquals(1L, found.getId());
-    }
-
-    @Test
-    void testGetSingleByNameNotFound() {
-        saveCategory(1L, "Электроника");
-        assertNull(productCategoriesDAO.getSingleByName("Мебель"));
     }
 
     @Test
@@ -108,6 +77,8 @@ public class ProductCategoriesDAOTest extends AbstractDAOTest {
         assertEquals(2, filtered.size());
     }
 
+
+
     @Test
     void testGetProductsInCategory() {
         ProductCategories category = saveCategory(1L, "Электроника");
@@ -117,6 +88,8 @@ public class ProductCategoriesDAOTest extends AbstractDAOTest {
         List<Products> productsInCategory = productCategoriesDAO.getProductsInCategory(category);
         assertEquals(2, productsInCategory.size());
     }
+
+
 
     @Test
     void testCountProductsInCategoryNonZero() {

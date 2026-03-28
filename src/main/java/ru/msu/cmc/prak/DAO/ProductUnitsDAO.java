@@ -9,31 +9,6 @@ import java.util.List;
 public interface ProductUnitsDAO extends CommonDAO<ProductUnits, Long> {
 
     /**
-     * Поиск партий по продукту.
-     */
-    List<ProductUnits> getByProductId(Long productId);
-
-    /**
-     * Поиск партий по полке.
-     */
-    List<ProductUnits> getByShelfNum(Long shelfNum);
-
-    /**
-     * Поиск партий по поставке.
-     */
-    List<ProductUnits> getBySupplyId(Long supplyId);
-
-    /**
-     * Поиск партий по заказу (зарезервированные).
-     */
-    List<ProductUnits> getByOrderId(Long orderId);
-
-    /**
-     * Поиск партий по дате поступления.
-     */
-    List<ProductUnits> getByArrivalRange(LocalDateTime from, LocalDateTime to);
-
-    /**
      * Основной метод поиска партий с фильтрами.
      * Используется на странице товара для фильтрации товарных единиц
      * (поставщик, местоположение, объём).

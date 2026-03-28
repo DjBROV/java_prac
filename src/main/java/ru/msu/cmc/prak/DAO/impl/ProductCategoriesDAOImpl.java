@@ -18,31 +18,6 @@ public class ProductCategoriesDAOImpl extends CommonDAOImpl<ProductCategories, L
     }
 
     @Override
-    public List<ProductCategories> getAllByName(String name) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<ProductCategories> query = session.createQuery(
-                    "from ProductCategories c where lower(c.name) like :name order by c.id",
-                    ProductCategories.class
-            );
-            query.setParameter("name", likeExpr(name));
-            return query.getResultList();
-        }
-    }
-
-    @Override
-    public ProductCategories getSingleByName(String name) {
-        try (Session session = sessionFactory.openSession()) {
-            Query<ProductCategories> query = session.createQuery(
-                    "from ProductCategories c where lower(c.name) = lower(:name)",
-                    ProductCategories.class
-            );
-            query.setParameter("name", name);
-            query.setMaxResults(1);
-            return query.uniqueResultOptional().orElse(null);
-        }
-    }
-
-    @Override
     public List<ProductCategories> getByFilter(Filter filter) {
         try (Session session = sessionFactory.openSession()) {
             StringBuilder hql = new StringBuilder("from ProductCategories c where 1=1");

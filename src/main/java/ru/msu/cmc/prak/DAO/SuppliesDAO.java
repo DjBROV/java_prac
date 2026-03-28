@@ -9,26 +9,6 @@ import java.util.List;
 public interface SuppliesDAO extends CommonDAO<Supplies, Long> {
 
     /**
-     * Поиск поставок по продукту.
-     */
-    List<Supplies> getByProductId(Long productId);
-
-    /**
-     * Поиск поставок по поставщику.
-     */
-    List<Supplies> getByProviderId(Long providerId);
-
-    /**
-     * Поиск поставок по флагу завершённости.
-     */
-    List<Supplies> getByCompleted(Boolean completed);
-
-    /**
-     * Поиск поставок по временному диапазону.
-     */
-    List<Supplies> getByTimeRange(LocalDateTime from, LocalDateTime to);
-
-    /**
      * Основной метод поиска поставок с фильтрами.
      * Используется на странице "Поставки".
      */

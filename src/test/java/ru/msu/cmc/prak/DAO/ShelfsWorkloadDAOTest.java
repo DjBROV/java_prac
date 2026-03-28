@@ -12,16 +12,6 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ShelfsWorkloadDAOTest extends AbstractDAOTest {
 
     @Test
-    void testGetByRoomNum() {
-        saveShelf(1L, 100, 10);
-        saveShelf(2L, 200, 20);
-        saveShelf(3L, 100, 30);
-
-        List<ShelfsWorkload> found = shelfsWorkloadDAO.getByRoomNum(100);
-        assertEquals(2, found.size());
-    }
-
-    @Test
     void testGetShelvesWithFreeSpace() {
         saveShelf(1L, 100, 100);
         saveShelf(2L, 100, 490);
@@ -30,6 +20,10 @@ public class ShelfsWorkloadDAOTest extends AbstractDAOTest {
         assertEquals(1, found.size());
         assertEquals(1L, found.getFirst().getId());
     }
+
+
+
+
 
     @Test
     void testGetUnitsOnShelf() {
@@ -46,9 +40,12 @@ public class ShelfsWorkloadDAOTest extends AbstractDAOTest {
         assertEquals(2, units.size());
     }
 
+
+
     @Test
     void testUpdateWorkloadManagedFoundBranch() {
         saveShelf(1L, 100, 10);
+
         ShelfsWorkload detached = new ShelfsWorkload();
         detached.setId(1L);
         detached.setRoomNum(100);

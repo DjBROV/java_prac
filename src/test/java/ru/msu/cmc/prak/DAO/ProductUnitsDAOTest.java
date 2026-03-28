@@ -12,88 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ProductUnitsDAOTest extends AbstractDAOTest {
 
     @Test
-    void testGetByProductId() {
-        ProductCategories category = saveCategory(1L, "Электроника");
-        Products p1 = saveProduct(1L, category, "Ноутбук");
-        Products p2 = saveProduct(2L, category, "Мышь");
-        Providers provider = saveProvider(1L, "ООО Альфа");
-        Supplies supply1 = saveSupply(1L, p1, provider, BigDecimal.TEN, LocalDateTime.now(), false);
-        Supplies supply2 = saveSupply(2L, p2, provider, BigDecimal.TEN, LocalDateTime.now(), false);
-        ShelfsWorkload shelf = saveShelf(1L, 1, 0);
-
-        saveUnit(1L, p1, LocalDateTime.now(), BigDecimal.ONE, shelf, supply1, null);
-        saveUnit(2L, p2, LocalDateTime.now(), BigDecimal.ONE, shelf, supply2, null);
-
-        assertEquals(1, productUnitsDAO.getByProductId(1L).size());
-    }
-
-    @Test
-    void testGetByShelfNum() {
-        ProductCategories category = saveCategory(1L, "Электроника");
-        Products product = saveProduct(1L, category, "Ноутбук");
-        Providers provider = saveProvider(1L, "ООО Альфа");
-        Supplies supply = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
-        ShelfsWorkload s1 = saveShelf(1L, 1, 0);
-        ShelfsWorkload s2 = saveShelf(2L, 1, 0);
-
-        saveUnit(1L, product, LocalDateTime.now(), BigDecimal.ONE, s1, supply, null);
-        saveUnit(2L, product, LocalDateTime.now(), BigDecimal.ONE, s2, supply, null);
-
-        assertEquals(1, productUnitsDAO.getByShelfNum(1L).size());
-    }
-
-    @Test
-    void testGetBySupplyId() {
-        ProductCategories category = saveCategory(1L, "Электроника");
-        Products product = saveProduct(1L, category, "Ноутбук");
-        Providers provider = saveProvider(1L, "ООО Альфа");
-        Supplies s1 = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
-        Supplies s2 = saveSupply(2L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
-        ShelfsWorkload shelf = saveShelf(1L, 1, 0);
-
-        saveUnit(1L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, s1, null);
-        saveUnit(2L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, s2, null);
-
-        assertEquals(1, productUnitsDAO.getBySupplyId(1L).size());
-    }
-
-    @Test
-    void testGetByOrderId() {
-        ProductCategories category = saveCategory(1L, "Электроника");
-        Products product = saveProduct(1L, category, "Ноутбук");
-        Consumers consumer = saveConsumer(1L, "Иван");
-        Providers provider = saveProvider(1L, "ООО Альфа");
-        Supplies supply = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
-        Orders o1 = saveOrder(1L, product, consumer, BigDecimal.ONE, LocalDateTime.now(), false);
-        Orders o2 = saveOrder(2L, product, consumer, BigDecimal.ONE, LocalDateTime.now(), false);
-        ShelfsWorkload shelf = saveShelf(1L, 1, 0);
-
-        saveUnit(1L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, supply, o1);
-        saveUnit(2L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, supply, o2);
-
-        assertEquals(1, productUnitsDAO.getByOrderId(1L).size());
-    }
-
-    @Test
-    void testGetByArrivalRange() {
-        ProductCategories category = saveCategory(1L, "Электроника");
-        Products product = saveProduct(1L, category, "Ноутбук");
-        Providers provider = saveProvider(1L, "ООО Альфа");
-        Supplies supply = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
-        ShelfsWorkload shelf = saveShelf(1L, 1, 0);
-
-        saveUnit(1L, product, LocalDateTime.of(2025, 1, 10, 10, 0), BigDecimal.ONE, shelf, supply, null);
-        saveUnit(2L, product, LocalDateTime.of(2025, 2, 10, 10, 0), BigDecimal.ONE, shelf, supply, null);
-
-        List<ProductUnits> found = productUnitsDAO.getByArrivalRange(
-                LocalDateTime.of(2025, 1, 1, 0, 0),
-                LocalDateTime.of(2025, 1, 31, 23, 59)
-        );
-        assertEquals(1, found.size());
-    }
-
-    @Test
-    void testGetByFilterAllNullsReservedNullBranchAndBdNullBranch() {
+    void testGetByFilterAllNullsReservedNullBranch() {
         ProductCategories category = saveCategory(1L, "Электроника");
         Products product = saveProduct(1L, category, "Ноутбук");
         Providers provider = saveProvider(1L, "ООО Альфа");
@@ -158,6 +77,8 @@ public class ProductUnitsDAOTest extends AbstractDAOTest {
         assertEquals(1, found.size());
         assertNotNull(found.getFirst().getOrder());
     }
+
+
 
     @Test
     void testGetProductNonNull() {
@@ -272,4 +193,6 @@ public class ProductUnitsDAOTest extends AbstractDAOTest {
 
         assertEquals(1, productUnitsDAO.getReservedUnits().size());
     }
+
+
 }

@@ -15,51 +15,6 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ConsumersDAOTest extends AbstractDAOTest {
 
     @Test
-    void testGetAllByNameFound() {
-        saveConsumer(1L, "Иван");
-        saveConsumer(2L, "Иван Петров");
-        assertEquals(2, consumersDAO.getAllByName("иван").size());
-    }
-
-    @Test
-    void testGetAllByNameNotFound() {
-        saveConsumer(1L, "Иван");
-        assertTrue(consumersDAO.getAllByName("мария").isEmpty());
-    }
-
-    @Test
-    void testGetSingleByNameFound() {
-        saveConsumer(1L, "Иван");
-        Consumers found = consumersDAO.getSingleByName("Иван");
-        assertNotNull(found);
-        assertEquals(1L, found.getId());
-    }
-
-    @Test
-    void testGetSingleByNameNotFound() {
-        saveConsumer(1L, "Иван");
-        assertNull(consumersDAO.getSingleByName("Мария"));
-    }
-
-    @Test
-    void testGetByPhoneNum() {
-        saveConsumer(1L, "Иван", null, null, "12345", "a@test");
-        saveConsumer(2L, "Петр", null, null, "99999", "b@test");
-
-        List<Consumers> found = consumersDAO.getByPhoneNum("123");
-        assertEquals(1, found.size());
-    }
-
-    @Test
-    void testGetByEmail() {
-        saveConsumer(1L, "Иван", null, null, "12345", "ivan@test");
-        saveConsumer(2L, "Петр", null, null, "99999", "petr@test");
-
-        List<Consumers> found = consumersDAO.getByEmail("ivan");
-        assertEquals(1, found.size());
-    }
-
-    @Test
     void testGetByFilterAllNulls() {
         saveConsumer(1L, "Иван");
         saveConsumer(2L, "Петр");
@@ -86,6 +41,8 @@ public class ConsumersDAOTest extends AbstractDAOTest {
         assertEquals(1L, found.getFirst().getId());
     }
 
+
+
     @Test
     void testGetOrdersByConsumer() {
         Consumers consumer = saveConsumer(1L, "Иван");
@@ -98,4 +55,6 @@ public class ConsumersDAOTest extends AbstractDAOTest {
         List<Orders> orders = consumersDAO.getOrdersByConsumer(consumer);
         assertEquals(2, orders.size());
     }
+
+
 }

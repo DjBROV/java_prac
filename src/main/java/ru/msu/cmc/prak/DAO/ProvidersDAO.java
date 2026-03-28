@@ -8,25 +8,6 @@ import java.util.List;
 
 public interface ProvidersDAO extends CommonDAO<Providers, Long> {
 
-    /**
-     * Поиск поставщиков по имени (like).
-     */
-    List<Providers> getAllByName(String name);
-
-    /**
-     * Поиск поставщика по точному имени.
-     */
-    Providers getSingleByName(String name);
-
-    /**
-     * Поиск поставщиков по номеру телефона.
-     */
-    List<Providers> getByPhoneNum(String phoneNum);
-
-    /**
-     * Поиск поставщиков по email.
-     */
-    List<Providers> getByEmail(String email);
 
     /**
      * Основной метод поиска поставщиков с фильтрами.
