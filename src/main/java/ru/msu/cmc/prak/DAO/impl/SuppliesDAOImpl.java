@@ -101,7 +101,7 @@ public class SuppliesDAOImpl extends CommonDAOImpl<Supplies, Long> implements Su
     }
 
     private BigDecimal bd(Integer value) {
-        return value == null ? null : BigDecimal.valueOf(value.longValue());
+        return BigDecimal.valueOf(value.longValue());
     }
 
     @FunctionalInterface

@@ -104,9 +104,8 @@ public class OrdersDAOImpl extends CommonDAOImpl<Orders, Long> implements Orders
     }
 
     private BigDecimal bd(Integer value) {
-        return value == null ? null : BigDecimal.valueOf(value.longValue());
+        return BigDecimal.valueOf(value.longValue());
     }
-
     @FunctionalInterface
     private interface ParameterBinder {
         void bind(Query<Orders> query);

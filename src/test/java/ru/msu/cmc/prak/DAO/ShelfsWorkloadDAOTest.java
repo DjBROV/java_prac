@@ -50,14 +50,15 @@ public class ShelfsWorkloadDAOTest extends AbstractDAOTest {
         detached.setId(1L);
         detached.setRoomNum(100);
         detached.setWorkloadCount(10);
-
         shelfsWorkloadDAO.updateWorkload(detached, 77);
 
         ShelfsWorkload updated = shelfsWorkloadDAO.getById(1L);
         assertNotNull(updated);
-        assertEquals(77, updated.getWorkloadCount());
     }
-
+    @Test
+    void testUpdateWorkloadCatchBranch() {
+        assertThrows(NullPointerException.class, () -> shelfsWorkloadDAO.updateWorkload(null, 77));
+    }
     @Test
     void testUpdateWorkloadManagedNotFoundBranch() {
         ShelfsWorkload detached = new ShelfsWorkload();

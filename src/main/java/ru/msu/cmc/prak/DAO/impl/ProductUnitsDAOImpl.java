@@ -120,9 +120,8 @@ public class ProductUnitsDAOImpl extends CommonDAOImpl<ProductUnits, Long> imple
     }
 
     private BigDecimal bd(Integer value) {
-        return value == null ? null : BigDecimal.valueOf(value.longValue());
+        return BigDecimal.valueOf(value.longValue());
     }
-
     @FunctionalInterface
     private interface ParameterBinder {
         void bind(Query<ProductUnits> query);

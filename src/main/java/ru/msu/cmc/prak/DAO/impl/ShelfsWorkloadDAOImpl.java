@@ -55,9 +55,8 @@ public class ShelfsWorkloadDAOImpl extends CommonDAOImpl<ShelfsWorkload, Long> i
                 }
                 tx.commit();
             } catch (Exception e) {
-                if (tx != null && tx.isActive()) {
                     tx.rollback();
-                }
+
                 throw e;
             }
         }
