@@ -21,10 +21,6 @@ public class ShelfsWorkloadDAOTest extends AbstractDAOTest {
         assertEquals(1L, found.getFirst().getId());
     }
 
-
-
-
-
     @Test
     void testGetUnitsOnShelf() {
         ProductCategories category = saveCategory(1L, "Электроника");
@@ -40,8 +36,6 @@ public class ShelfsWorkloadDAOTest extends AbstractDAOTest {
         assertEquals(2, units.size());
     }
 
-
-
     @Test
     void testUpdateWorkloadManagedFoundBranch() {
         saveShelf(1L, 100, 10);
@@ -55,10 +49,12 @@ public class ShelfsWorkloadDAOTest extends AbstractDAOTest {
         ShelfsWorkload updated = shelfsWorkloadDAO.getById(1L);
         assertNotNull(updated);
     }
+
     @Test
     void testUpdateWorkloadCatchBranch() {
         assertThrows(NullPointerException.class, () -> shelfsWorkloadDAO.updateWorkload(null, 77));
     }
+
     @Test
     void testUpdateWorkloadManagedNotFoundBranch() {
         ShelfsWorkload detached = new ShelfsWorkload();
@@ -94,5 +90,22 @@ public class ShelfsWorkloadDAOTest extends AbstractDAOTest {
         List<ShelfsWorkload> found = shelfsWorkloadDAO.getByFilter(filter);
         assertEquals(1, found.size());
         assertEquals(1L, found.getFirst().getId());
+    }
+
+    @Test
+    void testDeleteByIdExistingEntity() {
+        saveShelf(1L, 100, 10);
+
+        assertNotNull(shelfsWorkloadDAO.getById(1L));
+
+        shelfsWorkloadDAO.deleteById(1L);
+
+        assertNull(shelfsWorkloadDAO.getById(1L));
+    }
+
+    @Test
+    void testDeleteByIdNonExistingEntity() {
+        assertDoesNotThrow(() -> shelfsWorkloadDAO.deleteById(999L));
+        assertNull(shelfsWorkloadDAO.getById(999L));
     }
 }

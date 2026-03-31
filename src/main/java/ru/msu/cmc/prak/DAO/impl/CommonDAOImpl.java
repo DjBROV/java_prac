@@ -98,9 +98,9 @@ public abstract class CommonDAOImpl<T extends CommonEntity<ID>, ID extends Seria
             var tx = session.beginTransaction();
             try {
                 T managedEntity = entity;
-                if (!session.contains(entity)) {
-                    managedEntity = session.merge(entity);
-                }
+                //if (!session.contains(entity)) {
+                managedEntity = session.merge(entity);
+                //}
                 session.remove(managedEntity);
                 tx.commit();
             } catch (Exception e) {

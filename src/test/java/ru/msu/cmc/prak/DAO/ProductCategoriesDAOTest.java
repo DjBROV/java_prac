@@ -1,5 +1,6 @@
 package ru.msu.cmc.prak.DAO;
 
+import jakarta.websocket.Session;
 import org.junit.jupiter.api.Test;
 import ru.msu.cmc.prak.models.ProductCategories;
 import ru.msu.cmc.prak.models.Products;
@@ -106,4 +107,6 @@ public class ProductCategoriesDAOTest extends AbstractDAOTest {
         ProductCategories category = saveCategory(1L, "Электроника");
         assertEquals(0, productCategoriesDAO.countProductsInCategory(category));
     }
+
+
 }
