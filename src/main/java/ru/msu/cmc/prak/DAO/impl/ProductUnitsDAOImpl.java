@@ -18,9 +18,35 @@ public class ProductUnitsDAOImpl extends CommonDAOImpl<ProductUnits, Long> imple
     }
 
     @Override
+    public ProductUnits getById(Long id) {
+        try (Session session = sessionFactory.openSession()) {
+            Query<ProductUnits> query = session.createQuery(
+                    "select u from ProductUnits u " +
+                            "left join fetch u.product " +
+                            "left join fetch u.shelf " +
+                            "left join fetch u.supply s " +
+                            "left join fetch s.provider " +
+                            "left join fetch u.order " +
+                            "where u.id = :id",
+                    ProductUnits.class
+            );
+            query.setParameter("id", id);
+            return query.uniqueResult();
+        }
+    }
+
+    @Override
     public List<ProductUnits> getByFilter(Filter filter) {
         try (Session session = sessionFactory.openSession()) {
-            StringBuilder hql = new StringBuilder("from ProductUnits u where 1=1");
+            StringBuilder hql = new StringBuilder(
+                    "select distinct u from ProductUnits u " +
+                            "left join fetch u.product " +
+                            "left join fetch u.shelf " +
+                            "left join fetch u.supply s " +
+                            "left join fetch s.provider " +
+                            "left join fetch u.order " +
+                            "where 1=1"
+            );
             List<ParameterBinder> binders = new ArrayList<>();
 
             if (filter.getProductId() != null) {
@@ -101,7 +127,13 @@ public class ProductUnitsDAOImpl extends CommonDAOImpl<ProductUnits, Long> imple
     public List<ProductUnits> getFreeUnits() {
         try (Session session = sessionFactory.openSession()) {
             Query<ProductUnits> query = session.createQuery(
-                    "from ProductUnits u where u.order is null order by u.arrival, u.id",
+                    "select distinct u from ProductUnits u " +
+                            "left join fetch u.product " +
+                            "left join fetch u.shelf " +
+                            "left join fetch u.supply s " +
+                            "left join fetch s.provider " +
+                            "where u.order is null " +
+                            "order by u.arrival, u.id",
                     ProductUnits.class
             );
             return query.getResultList();
@@ -112,7 +144,14 @@ public class ProductUnitsDAOImpl extends CommonDAOImpl<ProductUnits, Long> imple
     public List<ProductUnits> getReservedUnits() {
         try (Session session = sessionFactory.openSession()) {
             Query<ProductUnits> query = session.createQuery(
-                    "from ProductUnits u where u.order is not null order by u.arrival, u.id",
+                    "select distinct u from ProductUnits u " +
+                            "left join fetch u.product " +
+                            "left join fetch u.shelf " +
+                            "left join fetch u.supply s " +
+                            "left join fetch s.provider " +
+                            "left join fetch u.order " +
+                            "where u.order is not null " +
+                            "order by u.arrival, u.id",
                     ProductUnits.class
             );
             return query.getResultList();
@@ -122,6 +161,7 @@ public class ProductUnitsDAOImpl extends CommonDAOImpl<ProductUnits, Long> imple
     private BigDecimal bd(Integer value) {
         return BigDecimal.valueOf(value.longValue());
     }
+
     @FunctionalInterface
     private interface ParameterBinder {
         void bind(Query<ProductUnits> query);

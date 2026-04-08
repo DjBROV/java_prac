@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark" th:fragment="navbar">
+    <div class="container-fluid">
+        <a class="navbar-brand" id="rootLink" th:href="@{/}">Склад</a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar"
+                aria-controls="mainNavbar" aria-expanded="false" aria-label="Переключить навигацию">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="mainNavbar">
+            <div class="navbar-nav">
+                <a class="nav-link" id="productsListLink" th:href="@{/products}">Товары</a>
+                <a class="nav-link" id="consumersListLink" th:href="@{/consumers}">Потребители</a>
+                <a class="nav-link" id="providersListLink" th:href="@{/providers}">Поставщики</a>
+
+                <a class="nav-link" id="ordersListLink" th:href="@{/orders}">Заказы</a>
+                <a class="nav-link" id="suppliesListLink" th:href="@{/supplies}">Поставки</a>
+                <a class="nav-link" id="categoriesListLink" th:href="@{/categories}">Категории</a>
+            </div>
+        </div>
+    </div>
+</nav>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Страница потребителя</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div th:replace="~{fragments/layout :: navbar}"></div>
+
+<main class="container mt-3">
+    <h2 id="consumerDetailsTitle" th:text="${consumer.name}">Потребитель</h2>
+
+    <div class="card mb-3" id="consumerInfoCard">
+        <div class="card-body">
+            <p><b>ID:</b> <span th:text="${consumer.id}"></span></p>
+            <p><b>Описание:</b> <span th:text="${consumer.description}"></span></p>
+            <p><b>Адрес:</b> <span th:text="${consumer.address}"></span></p>
+            <p><b>Телефон:</b> <span th:text="${consumer.phoneNum}"></span></p>
+            <p><b>Email:</b> <span th:text="${consumer.email}"></span></p>
+
+            <a class="btn btn-outline-primary" id="consumerOrdersLink"
+               th:href="@{/orders(consumerId=${consumer.id})}">
+                Открыть заказы этого потребителя
+            </a>
+        </div>
+    </div>
+
+    <h4>Заказы</h4>
+    <ul class="list-group" id="consumerOrdersList">
+        <li class="list-group-item" th:each="o : ${orders}">
+            <a th:href="@{/orders/{id}(id=${o.id})}"
+               th:text="${'#' + o.id + ' (' + o.time + ')'}"></a>
+        </li>
+    </ul>
+</main>
+</body>
+</html>

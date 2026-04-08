@@ -12,6 +12,28 @@ import static org.junit.jupiter.api.Assertions.*;
 public class SuppliesDAOTest extends AbstractDAOTest {
 
     @Test
+    void testGetByIdWithFetchedRelations() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Providers provider = saveProvider(1L, "ООО Альфа");
+        Supplies saved = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.of(2025, 1, 1, 10, 0), false);
+
+        Supplies found = suppliesDAO.getById(saved.getId());
+
+        assertNotNull(found);
+        assertEquals(1L, found.getId());
+        assertNotNull(found.getProduct());
+        assertEquals("Ноутбук", found.getProduct().getName());
+        assertNotNull(found.getProvider());
+        assertEquals("ООО Альфа", found.getProvider().getName());
+    }
+
+    @Test
+    void testGetByIdNotFound() {
+        assertNull(suppliesDAO.getById(999L));
+    }
+
+    @Test
     void testGetByFilterAllNulls() {
         ProductCategories category = saveCategory(1L, "Электроника");
         Products product = saveProduct(1L, category, "Ноутбук");
@@ -51,7 +73,23 @@ public class SuppliesDAOTest extends AbstractDAOTest {
         assertEquals(1L, found.getFirst().getId());
     }
 
+    @Test
+    void testGetByFilterOnlyCompletedFalseBranch() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Providers provider = saveProvider(1L, "ООО Альфа");
 
+        saveSupply(1L, product, provider, BigDecimal.ONE, LocalDateTime.of(2025, 1, 1, 10, 0), false);
+        saveSupply(2L, product, provider, BigDecimal.ONE, LocalDateTime.of(2025, 1, 2, 10, 0), true);
+
+        SuppliesDAO.Filter filter = SuppliesDAO.getFilterBuilder()
+                .completed(false)
+                .build();
+
+        List<Supplies> found = suppliesDAO.getByFilter(filter);
+        assertEquals(1, found.size());
+        assertFalse(found.getFirst().isCompleted());
+    }
 
     @Test
     void testGetProviderNonNull() {
@@ -98,7 +136,19 @@ public class SuppliesDAOTest extends AbstractDAOTest {
 
         List<ProductUnits> units = suppliesDAO.getProductUnitsForSupply(supply);
         assertEquals(2, units.size());
+        assertNotNull(units.getFirst().getProduct());
+        assertNotNull(units.getFirst().getShelf());
+        assertNotNull(units.getFirst().getSupply());
     }
 
+    @Test
+    void testGetProductUnitsForSupplyEmpty() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Providers provider = saveProvider(1L, "ООО Альфа");
+        Supplies supply = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
 
+        List<ProductUnits> units = suppliesDAO.getProductUnitsForSupply(supply);
+        assertTrue(units.isEmpty());
+    }
 }

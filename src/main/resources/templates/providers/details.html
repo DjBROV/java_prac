@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Страница поставщика</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div th:replace="~{fragments/layout :: navbar}"></div>
+
+<main class="container mt-3">
+    <h2 id="providerDetailsTitle" th:text="${provider.name}">Поставщик</h2>
+
+    <div class="card mb-3" id="providerInfoCard">
+        <div class="card-body">
+            <p><b>ID:</b> <span th:text="${provider.id}"></span></p>
+            <p><b>Описание:</b> <span th:text="${provider.description}"></span></p>
+            <p><b>Адрес:</b> <span th:text="${provider.address}"></span></p>
+            <p><b>Телефон:</b> <span th:text="${provider.phoneNum}"></span></p>
+            <p><b>Email:</b> <span th:text="${provider.email}"></span></p>
+
+            <a class="btn btn-outline-primary" id="providerSuppliesLink"
+               th:href="@{/supplies(providerId=${provider.id})}">
+                Открыть поставки этого поставщика
+            </a>
+        </div>
+    </div>
+
+    <h4>Поставки</h4>
+    <ul class="list-group" id="providerSuppliesList">
+        <li class="list-group-item" th:each="s : ${supplies}">
+            <a th:href="@{/supplies/{id}(id=${s.id})}"
+               th:text="${'#' + s.id + ' (' + s.time + ')'}"></a>
+        </li>
+    </ul>
+</main>
+</body>
+</html>

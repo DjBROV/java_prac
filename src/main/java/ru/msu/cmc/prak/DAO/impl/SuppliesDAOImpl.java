@@ -18,9 +18,29 @@ public class SuppliesDAOImpl extends CommonDAOImpl<Supplies, Long> implements Su
     }
 
     @Override
+    public Supplies getById(Long id) {
+        try (Session session = sessionFactory.openSession()) {
+            Query<Supplies> query = session.createQuery(
+                    "select s from Supplies s " +
+                            "left join fetch s.product " +
+                            "left join fetch s.provider " +
+                            "where s.id = :id",
+                    Supplies.class
+            );
+            query.setParameter("id", id);
+            return query.uniqueResult();
+        }
+    }
+
+    @Override
     public List<Supplies> getByFilter(Filter filter) {
         try (Session session = sessionFactory.openSession()) {
-            StringBuilder hql = new StringBuilder("from Supplies s where 1=1");
+            StringBuilder hql = new StringBuilder(
+                    "select distinct s from Supplies s " +
+                            "left join fetch s.product " +
+                            "left join fetch s.provider " +
+                            "where 1=1"
+            );
             List<ParameterBinder> binders = new ArrayList<>();
 
             if (filter.getId() != null) {
@@ -88,7 +108,14 @@ public class SuppliesDAOImpl extends CommonDAOImpl<Supplies, Long> implements Su
     public List<ProductUnits> getProductUnitsForSupply(Supplies supply) {
         try (Session session = sessionFactory.openSession()) {
             Query<ProductUnits> query = session.createQuery(
-                    "from ProductUnits u where u.supply = :supply order by u.arrival, u.id",
+                    "select distinct u from ProductUnits u " +
+                            "left join fetch u.product " +
+                            "left join fetch u.shelf " +
+                            "left join fetch u.supply s " +
+                            "left join fetch s.provider " +
+                            "left join fetch u.order " +
+                            "where u.supply = :supply " +
+                            "order by u.arrival, u.id",
                     ProductUnits.class
             );
             query.setParameter("supply", supply);

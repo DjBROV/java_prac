@@ -21,9 +21,29 @@ public class OrdersDAOImpl extends CommonDAOImpl<Orders, Long> implements Orders
     }
 
     @Override
+    public Orders getById(Long id) {
+        try (Session session = sessionFactory.openSession()) {
+            Query<Orders> query = session.createQuery(
+                    "select o from Orders o " +
+                            "left join fetch o.product " +
+                            "left join fetch o.consumer " +
+                            "where o.id = :id",
+                    Orders.class
+            );
+            query.setParameter("id", id);
+            return query.uniqueResult();
+        }
+    }
+
+    @Override
     public List<Orders> getByFilter(Filter filter) {
         try (Session session = sessionFactory.openSession()) {
-            StringBuilder hql = new StringBuilder("from Orders o where 1=1");
+            StringBuilder hql = new StringBuilder(
+                    "select distinct o from Orders o " +
+                            "left join fetch o.product " +
+                            "left join fetch o.consumer " +
+                            "where 1=1"
+            );
             List<ParameterBinder> binders = new ArrayList<>();
 
             if (filter.getId() != null) {
@@ -91,7 +111,14 @@ public class OrdersDAOImpl extends CommonDAOImpl<Orders, Long> implements Orders
     public List<ProductUnits> getProductUnitsForOrder(Orders order) {
         try (Session session = sessionFactory.openSession()) {
             Query<ProductUnits> query = session.createQuery(
-                    "from ProductUnits u where u.order = :order order by u.arrival, u.id",
+                    "select distinct u from ProductUnits u " +
+                            "left join fetch u.product " +
+                            "left join fetch u.shelf " +
+                            "left join fetch u.supply s " +
+                            "left join fetch s.provider " +
+                            "left join fetch u.order " +
+                            "where u.order = :order " +
+                            "order by u.arrival, u.id",
                     ProductUnits.class
             );
             query.setParameter("order", order);
@@ -106,6 +133,7 @@ public class OrdersDAOImpl extends CommonDAOImpl<Orders, Long> implements Orders
     private BigDecimal bd(Integer value) {
         return BigDecimal.valueOf(value.longValue());
     }
+
     @FunctionalInterface
     private interface ParameterBinder {
         void bind(Query<Orders> query);

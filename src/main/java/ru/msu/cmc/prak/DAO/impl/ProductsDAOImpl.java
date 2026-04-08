@@ -17,9 +17,27 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
     }
 
     @Override
+    public Products getById(Long id) {
+        try (Session session = sessionFactory.openSession()) {
+            Query<Products> query = session.createQuery(
+                    "select p from Products p " +
+                            "left join fetch p.category " +
+                            "where p.id = :id",
+                    Products.class
+            );
+            query.setParameter("id", id);
+            return query.uniqueResult();
+        }
+    }
+
+    @Override
     public List<Products> getByFilter(Filter filter) {
         try (Session session = sessionFactory.openSession()) {
-            StringBuilder hql = new StringBuilder("from Products p where 1=1");
+            StringBuilder hql = new StringBuilder(
+                    "select distinct p from Products p " +
+                            "left join fetch p.category " +
+                            "where 1=1"
+            );
             List<ParameterBinder> binders = new ArrayList<>();
 
             if (filter.getId() != null) {
@@ -73,7 +91,11 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
     public List<Supplies> getSuppliesForProduct(Products product) {
         try (Session session = sessionFactory.openSession()) {
             Query<Supplies> query = session.createQuery(
-                    "from Supplies s where s.product = :product order by s.time, s.id",
+                    "select s from Supplies s " +
+                            "left join fetch s.provider " +
+                            "left join fetch s.product " +
+                            "where s.product = :product " +
+                            "order by s.time, s.id",
                     Supplies.class
             );
             query.setParameter("product", product);
@@ -85,7 +107,11 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
     public List<Orders> getOrdersForProduct(Products product) {
         try (Session session = sessionFactory.openSession()) {
             Query<Orders> query = session.createQuery(
-                    "from Orders o where o.product = :product order by o.time, o.id",
+                    "select o from Orders o " +
+                            "left join fetch o.consumer " +
+                            "left join fetch o.product " +
+                            "where o.product = :product " +
+                            "order by o.time, o.id",
                     Orders.class
             );
             query.setParameter("product", product);
@@ -97,7 +123,14 @@ public class ProductsDAOImpl extends CommonDAOImpl<Products, Long> implements Pr
     public List<ProductUnits> getUnitsForProduct(Products product) {
         try (Session session = sessionFactory.openSession()) {
             Query<ProductUnits> query = session.createQuery(
-                    "from ProductUnits u where u.product = :product order by u.arrival, u.id",
+                    "select distinct u from ProductUnits u " +
+                            "left join fetch u.product " +
+                            "left join fetch u.shelf " +
+                            "left join fetch u.supply s " +
+                            "left join fetch s.provider " +
+                            "left join fetch u.order " +
+                            "where u.product = :product " +
+                            "order by u.arrival, u.id",
                     ProductUnits.class
             );
             query.setParameter("product", product);

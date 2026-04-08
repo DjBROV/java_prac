@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Страница товара</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div th:replace="~{fragments/layout :: navbar}"></div>
+
+<main class="container mt-3">
+    <h2 id="productDetailsTitle" th:text="${product.name}">Товар</h2>
+
+    <div class="card mb-3" id="productInfoCard">
+        <div class="card-body">
+            <p><b>ID:</b> <span id="productIdValue" th:text="${product.id}"></span></p>
+            <p><b>Категория:</b> <span th:text="${product.category != null ? product.category.name : '-'}"></span></p>
+            <p><b>Описание:</b> <span th:text="${product.description}"></span></p>
+            <p><b>Срок хранения:</b> <span th:text="${product.storageLife != null ? product.storageLife : '-'}"></span></p>
+            <p><b>Габариты:</b> <span th:text="${product.product_size != null ? product.product_size : '-'}"></span></p>
+            <p><b>Ед. изм.:</b> <span th:text="${product.unit != null ? product.unit : '-'}"></span></p>
+        </div>
+    </div>
+
+    <!-- ДОБАВЛЕНО -->
+    <h4>Фильтр товарных единиц</h4>
+    <form class="row g-2 mb-3" method="get" th:action="@{/products/{id}(id=${product.id})}" id="productUnitsFilterForm">
+        <div class="col-md-2">
+            <input class="form-control" id="supplierIdFilter" name="supplierId" placeholder="ID поставщика">
+        </div>
+        <div class="col-md-2">
+            <input class="form-control" id="shelfNumFilter" name="shelfNum" placeholder="Номер полки">
+        </div>
+        <div class="col-md-2">
+            <input class="form-control" id="roomNumFilter" name="roomNum" placeholder="Комната">
+        </div>
+        <div class="col-md-2">
+            <input class="form-control" id="minAmountFilter" name="minAmount" placeholder="Кол-во от">
+        </div>
+        <div class="col-md-2">
+            <input class="form-control" id="maxAmountFilter" name="maxAmount" placeholder="Кол-во до">
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-primary" id="searchUnitsButton" type="submit">Поиск</button>
+        </div>
+    </form>
+
+    <h4>Товарные единицы</h4>
+    <table class="table table-sm table-bordered" id="productUnitsTable">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Количество</th>
+            <th>Полка</th>
+            <th>Поставка</th>
+            <th>Заказ</th>
+            <th>Зарезервировано</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="u: ${units}">
+            <td th:text="${u.id}"></td>
+            <td th:text="${u.amount}"></td>
+            <td th:text="${u.shelf != null ? (u.shelf.roomNum + '/' + u.shelf.id) : '-'}"></td>
+            <td>
+                <a th:if="${u.supply != null}" th:href="@{/supplies/{id}(id=${u.supply.id})}" th:text="${u.supply.id}"></a>
+                <span th:if="${u.supply == null}">-</span>
+            </td>
+            <td>
+                <a th:if="${u.order != null}" th:href="@{/orders/{id}(id=${u.order.id})}" th:text="${u.order.id}"></a>
+                <span th:if="${u.order == null}">-</span>
+            </td>
+            <td th:text="${u.order != null ? 'Да' : 'Нет'}"></td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

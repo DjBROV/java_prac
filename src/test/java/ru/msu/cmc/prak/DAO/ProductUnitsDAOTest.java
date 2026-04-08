@@ -12,6 +12,34 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ProductUnitsDAOTest extends AbstractDAOTest {
 
     @Test
+    void testGetByIdWithFetchedRelations() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+        Consumers consumer = saveConsumer(1L, "Иван");
+        Providers provider = saveProvider(1L, "ООО Альфа");
+        Supplies supply = saveSupply(1L, product, provider, BigDecimal.TEN, LocalDateTime.now(), false);
+        Orders order = saveOrder(1L, product, consumer, BigDecimal.ONE, LocalDateTime.now(), false);
+        ShelfsWorkload shelf = saveShelf(1L, 10, 0);
+
+        ProductUnits saved = saveUnit(1L, product, LocalDateTime.of(2025, 1, 1, 10, 0), BigDecimal.valueOf(3), shelf, supply, order);
+
+        ProductUnits found = productUnitsDAO.getById(saved.getId());
+
+        assertNotNull(found);
+        assertEquals(1L, found.getId());
+        assertNotNull(found.getProduct());
+        assertNotNull(found.getShelf());
+        assertNotNull(found.getSupply());
+        assertNotNull(found.getOrder());
+        assertNotNull(found.getSupply().getProvider());
+    }
+
+    @Test
+    void testGetByIdNotFound() {
+        assertNull(productUnitsDAO.getById(999L));
+    }
+
+    @Test
     void testGetByFilterAllNullsReservedNullBranch() {
         ProductCategories category = saveCategory(1L, "Электроника");
         Products product = saveProduct(1L, category, "Ноутбук");
@@ -77,8 +105,6 @@ public class ProductUnitsDAOTest extends AbstractDAOTest {
         assertEquals(1, found.size());
         assertNotNull(found.getFirst().getOrder());
     }
-
-
 
     @Test
     void testGetProductNonNull() {
@@ -175,7 +201,9 @@ public class ProductUnitsDAOTest extends AbstractDAOTest {
         saveUnit(1L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, supply, null);
         saveUnit(2L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, supply, order);
 
-        assertEquals(1, productUnitsDAO.getFreeUnits().size());
+        List<ProductUnits> free = productUnitsDAO.getFreeUnits();
+        assertEquals(1, free.size());
+        assertNull(free.getFirst().getOrder());
     }
 
     @Test
@@ -191,8 +219,18 @@ public class ProductUnitsDAOTest extends AbstractDAOTest {
         saveUnit(1L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, supply, null);
         saveUnit(2L, product, LocalDateTime.now(), BigDecimal.ONE, shelf, supply, order);
 
-        assertEquals(1, productUnitsDAO.getReservedUnits().size());
+        List<ProductUnits> reserved = productUnitsDAO.getReservedUnits();
+        assertEquals(1, reserved.size());
+        assertNotNull(reserved.getFirst().getOrder());
     }
 
+    @Test
+    void testGetFreeUnitsEmpty() {
+        assertTrue(productUnitsDAO.getFreeUnits().isEmpty());
+    }
 
+    @Test
+    void testGetReservedUnitsEmpty() {
+        assertTrue(productUnitsDAO.getReservedUnits().isEmpty());
+    }
 }

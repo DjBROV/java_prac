@@ -13,6 +13,24 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ProductsDAOTest extends AbstractDAOTest {
 
     @Test
+    void testGetByIdWithFetchedCategory() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products saved = saveProduct(1L, category, "Ноутбук");
+
+        Products found = productsDAO.getById(saved.getId());
+
+        assertNotNull(found);
+        assertEquals(1L, found.getId());
+        assertNotNull(found.getCategory());
+        assertEquals("Электроника", found.getCategory().getName());
+    }
+
+    @Test
+    void testGetByIdNotFound() {
+        assertNull(productsDAO.getById(999L));
+    }
+
+    @Test
     void testGetByFilterAllNulls() {
         ProductCategories c1 = saveCategory(1L, "Техника");
         ProductCategories c2 = saveCategory(2L, "Мебель");
@@ -63,8 +81,6 @@ public class ProductsDAOTest extends AbstractDAOTest {
         assertEquals(2, found.size());
     }
 
-
-
     @Test
     void testGetSuppliesForProduct() {
         ProductCategories category = saveCategory(1L, "Электроника");
@@ -76,9 +92,17 @@ public class ProductsDAOTest extends AbstractDAOTest {
 
         List<Supplies> found = productsDAO.getSuppliesForProduct(product);
         assertEquals(2, found.size());
+        assertNotNull(found.getFirst().getProvider());
+        assertNotNull(found.getFirst().getProduct());
     }
 
+    @Test
+    void testGetSuppliesForProductEmpty() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
 
+        assertTrue(productsDAO.getSuppliesForProduct(product).isEmpty());
+    }
 
     @Test
     void testGetOrdersForProduct() {
@@ -91,8 +115,17 @@ public class ProductsDAOTest extends AbstractDAOTest {
 
         List<Orders> found = productsDAO.getOrdersForProduct(product);
         assertEquals(2, found.size());
+        assertNotNull(found.getFirst().getConsumer());
+        assertNotNull(found.getFirst().getProduct());
     }
 
+    @Test
+    void testGetOrdersForProductEmpty() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
+
+        assertTrue(productsDAO.getOrdersForProduct(product).isEmpty());
+    }
 
     @Test
     void testGetUnitsForProduct() {
@@ -107,9 +140,18 @@ public class ProductsDAOTest extends AbstractDAOTest {
 
         List<ProductUnits> found = productsDAO.getUnitsForProduct(product);
         assertEquals(2, found.size());
+        assertNotNull(found.getFirst().getProduct());
+        assertNotNull(found.getFirst().getShelf());
+        assertNotNull(found.getFirst().getSupply());
     }
 
+    @Test
+    void testGetUnitsForProductEmpty() {
+        ProductCategories category = saveCategory(1L, "Электроника");
+        Products product = saveProduct(1L, category, "Ноутбук");
 
+        assertTrue(productsDAO.getUnitsForProduct(product).isEmpty());
+    }
 
     @Test
     void testGetCategoryNonNull() {
