@@ -5,9 +5,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import ru.msu.cmc.prak.DAO.*;
+import ru.msu.cmc.prak.controllers.exceptions.BadRequestException;
+import ru.msu.cmc.prak.controllers.exceptions.EntityNotFoundException;
 import ru.msu.cmc.prak.models.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,25 +32,31 @@ public class OrdersController {
                        @RequestParam(required = false) String timeTo,
                        @RequestParam(required = false) Boolean completed,
                        Model model) {
+        Integer parsedAmountFrom = ControllerUtils.parseIntOrNull(amountFrom);
+        Integer parsedAmountTo = ControllerUtils.parseIntOrNull(amountTo);
+        LocalDateTime parsedTimeFrom = ControllerUtils.parseDateTimeOrNull(timeFrom);
+        LocalDateTime parsedTimeTo = ControllerUtils.parseDateTimeOrNull(timeTo);
+
+        validateRange(parsedAmountFrom, parsedAmountTo, parsedTimeFrom, parsedTimeTo);
+
         OrdersDAO.Filter filter = OrdersDAO.getFilterBuilder()
                 .consumerId(ControllerUtils.parseLongOrNull(consumerId))
-                .productName(productName)
-                .amountFrom(ControllerUtils.parseIntOrNull(amountFrom))
-                .amountTo(ControllerUtils.parseIntOrNull(amountTo))
-                .timeFrom(ControllerUtils.parseDateTimeOrNull(timeFrom))
-                .timeTo(ControllerUtils.parseDateTimeOrNull(timeTo))
+                .productName(ControllerUtils.blankToNull(productName))
+                .amountFrom(parsedAmountFrom)
+                .amountTo(parsedAmountTo)
+                .timeFrom(parsedTimeFrom)
+                .timeTo(parsedTimeTo)
                 .completed(completed)
                 .build();
+
         model.addAttribute("orders", ordersDAO.getByFilter(filter));
         return "orders/list";
     }
 
     @GetMapping("/{id}")
     public String details(@PathVariable Long id, Model model) {
-        Orders order = ordersDAO.getById(id);
-        if (order == null) {
-            throw new IllegalArgumentException("Заказ с id=" + id + " не найден");
-        }
+        Orders order = getOrderOrThrow(id);
+
         model.addAttribute("order", order);
         model.addAttribute("consumer", ordersDAO.getConsumer(order));
         model.addAttribute("units", ordersDAO.getProductUnitsForOrder(order));
@@ -57,20 +66,16 @@ public class OrdersController {
     @GetMapping("/new")
     public String createForm(Model model) {
         model.addAttribute("order", new Orders());
-        model.addAttribute("consumers", consumersDAO.getAll());
-        model.addAttribute("products", productsDAO.getAll());
+        addOrderFormAttributes(model);
         return "orders/form";
     }
 
     @GetMapping("/{id}/edit")
     public String editForm(@PathVariable Long id, Model model) {
-        Orders order = ordersDAO.getById(id);
-        if (order == null) {
-            throw new IllegalArgumentException("Заказ с id=" + id + " не найден");
-        }
+        Orders order = getOrderOrThrow(id);
+
         model.addAttribute("order", order);
-        model.addAttribute("consumers", consumersDAO.getAll());
-        model.addAttribute("products", productsDAO.getAll());
+        addOrderFormAttributes(model);
         return "orders/form";
     }
 
@@ -83,34 +88,44 @@ public class OrdersController {
                        Model model) {
         Consumers consumer = consumersDAO.getById(consumerId);
         Products product = productsDAO.getById(productId);
-        if (consumer == null || product == null) {
-            throw new IllegalArgumentException("Потребитель или товар не найден");
+
+        if (consumer == null) {
+            throw new EntityNotFoundException("Потребитель с id=" + consumerId + " не найден");
         }
 
-        Orders order = new Orders();
-        order.setId(id == null ? ControllerUtils.nextId(new ArrayList<>(ordersDAO.getAll()), 1000) : id);
-        order.setConsumer(consumer);
-        order.setProduct(product);
-        order.setAmount(BigDecimal.valueOf(amount.longValue()));
-        order.setTime(ControllerUtils.parseDateTimeOrNull(time));
+        if (product == null) {
+            throw new EntityNotFoundException("Товар с id=" + productId + " не найден");
+        }
+
+        if (amount == null || amount <= 0) {
+            return orderFormError(model, buildOrder(id, consumer, product, amount, time),
+                    "Количество товара в заказе должно быть положительным");
+        }
+
+        Orders order = buildOrder(id, consumer, product, amount, time);
+
+        Orders existing = null;
+        if (id != null) {
+            existing = getOrderOrThrow(id);
+        }
+
+        BigDecimal available = getAvailableAmountForOrder(existing, productId);
+        BigDecimal required = BigDecimal.valueOf(amount.longValue());
+
+        if (available.compareTo(required) < 0) {
+            return orderFormError(model, order,
+                    "Недостаточно товара для заказа. Доступно: " + available + ", нужно: " + amount);
+        }
 
         if (id == null) {
-            ensureEnoughFreeProduct(productId, amount, model);
             order.setCompleted(false);
             ordersDAO.save(order);
 
             List<ProductUnits> freeUnits = getFreeUnitsForProduct(productId);
-            reserveUnitsForOrder(order, freeUnits, BigDecimal.valueOf(amount.longValue()));
+            reserveUnitsForOrder(order, freeUnits, required);
         } else {
-            Orders existing = ordersDAO.getById(id);
-            if (existing == null) {
-                throw new IllegalArgumentException("Заказ с id=" + id + " не найден");
-            }
-
-            // Снимаем старый резерв, если заказ ещё не выполнен
             if (!existing.isCompleted()) {
                 releaseReservation(existing);
-                ensureEnoughFreeProduct(productId, amount, model);
             }
 
             order.setCompleted(existing.isCompleted());
@@ -118,32 +133,30 @@ public class OrdersController {
 
             if (!order.isCompleted()) {
                 List<ProductUnits> freeUnits = getFreeUnitsForProduct(productId);
-                reserveUnitsForOrder(order, freeUnits, BigDecimal.valueOf(amount.longValue()));
+                reserveUnitsForOrder(order, freeUnits, required);
             }
         }
+
         return "redirect:/orders";
     }
 
     @PostMapping("/{id}/complete")
     public String complete(@PathVariable Long id) {
-        Orders order = ordersDAO.getById(id);
-        if (order == null) {
-            throw new IllegalArgumentException("Заказ с id=" + id + " не найден");
-        }
+        Orders order = getOrderOrThrow(id);
+
         order.setCompleted(true);
         ordersDAO.update(order);
+
         for (ProductUnits unit : ordersDAO.getProductUnitsForOrder(order)) {
             productUnitsDAO.deleteById(unit.getId());
         }
+
         return "redirect:/orders/" + id;
     }
 
     @PostMapping("/{id}/delete")
     public String delete(@PathVariable Long id) {
-        Orders order = ordersDAO.getById(id);
-        if (order == null) {
-            return "redirect:/orders";
-        }
+        Orders order = getOrderOrThrow(id);
 
         if (!order.isCompleted()) {
             releaseReservation(order);
@@ -153,17 +166,65 @@ public class OrdersController {
         return "redirect:/orders";
     }
 
-    private void ensureEnoughFreeProduct(Long productId, Integer amount, Model model) {
-        List<ProductUnits> freeUnits = getFreeUnitsForProduct(productId);
-        BigDecimal available = freeUnits.stream()
+    private Orders getOrderOrThrow(Long id) {
+        Orders order = ordersDAO.getById(id);
+        if (order == null) {
+            throw new EntityNotFoundException("Заказ с id=" + id + " не найден");
+        }
+        return order;
+    }
+
+    private Orders buildOrder(Long id, Consumers consumer, Products product, Integer amount, String time) {
+        Orders order = new Orders();
+        order.setId(id == null ? ControllerUtils.nextId(new ArrayList<>(ordersDAO.getAll()), 1000) : id);
+        order.setConsumer(consumer);
+        order.setProduct(product);
+        order.setAmount(amount == null ? null : BigDecimal.valueOf(amount.longValue()));
+        order.setTime(ControllerUtils.parseDateTimeOrNull(time));
+        return order;
+    }
+
+    private String orderFormError(Model model, Orders order, String message) {
+        model.addAttribute("errorMessage", message);
+        model.addAttribute("order", order);
+        addOrderFormAttributes(model);
+        return "orders/form";
+    }
+
+    private void addOrderFormAttributes(Model model) {
+        model.addAttribute("consumers", consumersDAO.getAll());
+        model.addAttribute("products", productsDAO.getAll());
+    }
+
+    private void validateRange(Integer amountFrom,
+                               Integer amountTo,
+                               LocalDateTime timeFrom,
+                               LocalDateTime timeTo) {
+        if (amountFrom != null && amountTo != null && amountFrom > amountTo) {
+            throw new BadRequestException("Минимальное количество не может быть больше максимального");
+        }
+
+        if (timeFrom != null && timeTo != null && timeFrom.isAfter(timeTo)) {
+            throw new BadRequestException("Начало периода не может быть позже конца периода");
+        }
+    }
+
+    private BigDecimal getAvailableAmountForOrder(Orders existingOrder, Long productId) {
+        BigDecimal available = getFreeUnitsForProduct(productId).stream()
                 .map(ProductUnits::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        if (available.compareTo(BigDecimal.valueOf(amount.longValue())) < 0) {
-            model.addAttribute("errorMessage",
-                    "Недостаточно товара для заказа. Доступно: " + available + ", нужно: " + amount);
-            throw new IllegalArgumentException("Недостаточно товара для заказа");
+        if (existingOrder != null && !existingOrder.isCompleted()) {
+            BigDecimal alreadyReservedForThisOrder = ordersDAO.getProductUnitsForOrder(existingOrder).stream()
+                    .filter(unit -> unit.getProduct() != null)
+                    .filter(unit -> productId.equals(unit.getProduct().getId()))
+                    .map(ProductUnits::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            available = available.add(alreadyReservedForThisOrder);
         }
+
+        return available;
     }
 
     private List<ProductUnits> getFreeUnitsForProduct(Long productId) {
@@ -175,7 +236,6 @@ public class OrdersController {
 
     private void releaseReservation(Orders order) {
         List<ProductUnits> reservedUnits = ordersDAO.getProductUnitsForOrder(order);
-        long nextId = ControllerUtils.nextId(new ArrayList<>(productUnitsDAO.getAll()), 10000);
 
         for (ProductUnits unit : reservedUnits) {
             if (unit.getSupply() == null || unit.getShelf() == null || unit.getProduct() == null) {
@@ -199,9 +259,6 @@ public class OrdersController {
             } else {
                 unit.setOrder(null);
                 productUnitsDAO.update(unit);
-                if (unit.getId() == null) {
-                    unit.setId(nextId++);
-                }
             }
         }
     }

@@ -7,11 +7,13 @@ import org.springframework.web.bind.annotation.*;
 import ru.msu.cmc.prak.DAO.ProductCategoriesDAO;
 import ru.msu.cmc.prak.DAO.ProductUnitsDAO;
 import ru.msu.cmc.prak.DAO.ProductsDAO;
+import ru.msu.cmc.prak.controllers.exceptions.BadRequestException;
+import ru.msu.cmc.prak.controllers.exceptions.BusinessRuleException;
+import ru.msu.cmc.prak.controllers.exceptions.EntityNotFoundException;
 import ru.msu.cmc.prak.models.*;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.List;
 
 @Controller
 @RequiredArgsConstructor
@@ -32,15 +34,22 @@ public class ProductsController {
                        @RequestParam(required = false) String maxStorageDays,
                        @RequestParam(required = false) Boolean large,
                        Model model) {
+        Duration minStorageLife = parseDays(minStorageDays);
+        Duration maxStorageLife = parseDays(maxStorageDays);
+
+        if (minStorageLife != null && maxStorageLife != null && minStorageLife.compareTo(maxStorageLife) > 0) {
+            throw new BadRequestException("Минимальный срок хранения не может быть больше максимального");
+        }
+
         ProductsDAO.Filter filter = ProductsDAO.getFilterBuilder()
                 .id(ControllerUtils.parseLongOrNull(id))
-                .name(name)
+                .name(ControllerUtils.blankToNull(name))
                 .categoryId(ControllerUtils.parseLongOrNull(categoryId))
-                .categoryName(categoryName)
+                .categoryName(ControllerUtils.blankToNull(categoryName))
                 .unit(unit)
                 .size(size)
-                .minStorageLife(parseDays(minStorageDays))
-                .maxStorageLife(parseDays(maxStorageDays))
+                .minStorageLife(minStorageLife)
+                .maxStorageLife(maxStorageLife)
                 .large(large)
                 .build();
 
@@ -58,17 +67,22 @@ public class ProductsController {
                           @RequestParam(required = false) String minAmount,
                           @RequestParam(required = false) String maxAmount,
                           Model model) {
-        Products product = productsDAO.getById(id);
-        if (product == null) {
-            throw new IllegalArgumentException("Товар с id=" + id + " не найден");
+        Products product = getProductOrThrow(id);
+
+        Integer parsedMinAmount = ControllerUtils.parseIntOrNull(minAmount);
+        Integer parsedMaxAmount = ControllerUtils.parseIntOrNull(maxAmount);
+
+        if (parsedMinAmount != null && parsedMaxAmount != null && parsedMinAmount > parsedMaxAmount) {
+            throw new BadRequestException("Минимальное количество не может быть больше максимального");
         }
+
         ProductUnitsDAO.Filter unitsFilter = ProductUnitsDAO.getFilterBuilder()
                 .productId(id)
                 .supplierId(ControllerUtils.parseLongOrNull(supplierId))
                 .shelfNum(ControllerUtils.parseLongOrNull(shelfNum))
                 .roomNum(ControllerUtils.parseIntOrNull(roomNum))
-                .minAmount(ControllerUtils.parseIntOrNull(minAmount))
-                .maxAmount(ControllerUtils.parseIntOrNull(maxAmount))
+                .minAmount(parsedMinAmount)
+                .maxAmount(parsedMaxAmount)
                 .build();
 
         model.addAttribute("product", product);
@@ -79,22 +93,16 @@ public class ProductsController {
     @GetMapping("/new")
     public String createForm(Model model) {
         model.addAttribute("product", new Products());
-        model.addAttribute("categories", categoriesDAO.getAll());
-        model.addAttribute("units", UnitsType.values());
-        model.addAttribute("sizes", SizeType.values());
+        addProductFormAttributes(model);
         return "products/form";
     }
 
     @GetMapping("/{id}/edit")
     public String editForm(@PathVariable Long id, Model model) {
-        Products product = productsDAO.getById(id);
-        if (product == null) {
-            throw new IllegalArgumentException("Товар с id=" + id + " не найден");
-        }
+        Products product = getProductOrThrow(id);
+
         model.addAttribute("product", product);
-        model.addAttribute("categories", categoriesDAO.getAll());
-        model.addAttribute("units", UnitsType.values());
-        model.addAttribute("sizes", SizeType.values());
+        addProductFormAttributes(model);
         return "products/form";
     }
 
@@ -109,14 +117,18 @@ public class ProductsController {
                        @RequestParam(required = false) String storageLifeDays) {
         ProductCategories category = categoriesDAO.getById(categoryId);
         if (category == null) {
-            throw new IllegalArgumentException("Категория не найдена");
+            throw new EntityNotFoundException("Категория с id=" + categoryId + " не найдена");
+        }
+
+        if (id != null) {
+            getProductOrThrow(id);
         }
 
         Products entity = new Products();
         entity.setId(id == null ? ControllerUtils.nextId(new ArrayList<>(productsDAO.getAll()), 1000) : id);
         entity.setCategory(category);
-        entity.setName(name);
-        entity.setDescription(description);
+        entity.setName(ControllerUtils.blankToNull(name));
+        entity.setDescription(ControllerUtils.blankToNull(description));
         entity.setUnit(unit);
         entity.setProduct_size(size);
         entity.setUnitsForOne(unitsForOne);
@@ -127,19 +139,57 @@ public class ProductsController {
         } else {
             productsDAO.update(entity);
         }
+
         return "redirect:/products";
     }
 
     @PostMapping("/{id}/delete")
     public String delete(@PathVariable Long id) {
+        Products product = getProductOrThrow(id);
+
+        if (!productsDAO.getUnitsForProduct(product).isEmpty()) {
+            throw new BusinessRuleException("Нельзя удалить товар: на складе есть товарные единицы этого товара");
+        }
+
+        if (!productsDAO.getOrdersForProduct(product).isEmpty()) {
+            throw new BusinessRuleException("Нельзя удалить товар: существуют связанные заказы");
+        }
+
+        if (!productsDAO.getSuppliesForProduct(product).isEmpty()) {
+            throw new BusinessRuleException("Нельзя удалить товар: существуют связанные поставки");
+        }
+
         productsDAO.deleteById(id);
         return "redirect:/products";
+    }
+
+    private Products getProductOrThrow(Long id) {
+        Products product = productsDAO.getById(id);
+        if (product == null) {
+            throw new EntityNotFoundException("Товар с id=" + id + " не найден");
+        }
+        return product;
+    }
+
+    private void addProductFormAttributes(Model model) {
+        model.addAttribute("categories", categoriesDAO.getAll());
+        model.addAttribute("units", UnitsType.values());
+        model.addAttribute("sizes", SizeType.values());
     }
 
     private Duration parseDays(String days) {
         if (days == null || days.isBlank()) {
             return null;
         }
-        return Duration.ofDays(Long.parseLong(days.trim()));
+
+        try {
+            long parsedDays = Long.parseLong(days.trim());
+            if (parsedDays < 0) {
+                throw new BadRequestException("Срок хранения не может быть отрицательным");
+            }
+            return Duration.ofDays(parsedDays);
+        } catch (NumberFormatException e) {
+            throw new BadRequestException("Срок хранения должен быть числом дней");
+        }
     }
 }

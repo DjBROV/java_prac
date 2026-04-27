@@ -5,6 +5,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import ru.msu.cmc.prak.DAO.ConsumersDAO;
+import ru.msu.cmc.prak.controllers.exceptions.BusinessRuleException;
+import ru.msu.cmc.prak.controllers.exceptions.EntityNotFoundException;
 import ru.msu.cmc.prak.models.Consumers;
 
 import java.util.ArrayList;
@@ -24,21 +26,20 @@ public class ConsumersController {
                        Model model) {
         ConsumersDAO.Filter filter = ConsumersDAO.getFilterBuilder()
                 .id(ControllerUtils.parseLongOrNull(id))
-                .name(name)
-                .address(address)
-                .phoneNum(phoneNum)
-                .email(email)
+                .name(ControllerUtils.blankToNull(name))
+                .address(ControllerUtils.blankToNull(address))
+                .phoneNum(ControllerUtils.blankToNull(phoneNum))
+                .email(ControllerUtils.blankToNull(email))
                 .build();
+
         model.addAttribute("consumers", consumersDAO.getByFilter(filter));
         return "consumers/list";
     }
 
     @GetMapping("/{id}")
     public String details(@PathVariable Long id, Model model) {
-        Consumers consumer = consumersDAO.getById(id);
-        if (consumer == null) {
-            throw new IllegalArgumentException("Потребитель с id=" + id + " не найден");
-        }
+        Consumers consumer = getConsumerOrThrow(id);
+
         model.addAttribute("consumer", consumer);
         model.addAttribute("orders", consumersDAO.getOrdersByConsumer(consumer));
         return "consumers/details";
@@ -52,10 +53,8 @@ public class ConsumersController {
 
     @GetMapping("/{id}/edit")
     public String editForm(@PathVariable Long id, Model model) {
-        Consumers consumer = consumersDAO.getById(id);
-        if (consumer == null) {
-            throw new IllegalArgumentException("Потребитель с id=" + id + " не найден");
-        }
+        Consumers consumer = getConsumerOrThrow(id);
+
         model.addAttribute("consumer", consumer);
         return "consumers/form";
     }
@@ -69,23 +68,39 @@ public class ConsumersController {
                        @RequestParam(required = false) String address) {
         Consumers entity = new Consumers();
         entity.setId(id == null ? ControllerUtils.nextId(new ArrayList<>(consumersDAO.getAll()), 100) : id);
-        entity.setName(name);
-        entity.setDescription(description);
-        entity.setPhoneNum(phoneNum);
-        entity.setEmail(email);
-        entity.setAddress(address);
+        entity.setName(ControllerUtils.blankToNull(name));
+        entity.setDescription(ControllerUtils.blankToNull(description));
+        entity.setPhoneNum(ControllerUtils.blankToNull(phoneNum));
+        entity.setEmail(ControllerUtils.blankToNull(email));
+        entity.setAddress(ControllerUtils.blankToNull(address));
 
         if (id == null) {
             consumersDAO.save(entity);
         } else {
+            getConsumerOrThrow(id);
             consumersDAO.update(entity);
         }
+
         return "redirect:/consumers";
     }
 
     @PostMapping("/{id}/delete")
     public String delete(@PathVariable Long id) {
+        Consumers consumer = getConsumerOrThrow(id);
+
+        if (!consumersDAO.getOrdersByConsumer(consumer).isEmpty()) {
+            throw new BusinessRuleException("Нельзя удалить потребителя: у него есть связанные заказы");
+        }
+
         consumersDAO.deleteById(id);
         return "redirect:/consumers";
+    }
+
+    private Consumers getConsumerOrThrow(Long id) {
+        Consumers consumer = consumersDAO.getById(id);
+        if (consumer == null) {
+            throw new EntityNotFoundException("Потребитель с id=" + id + " не найден");
+        }
+        return consumer;
     }
 }

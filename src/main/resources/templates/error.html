@@ -10,25 +10,32 @@
 
 <main class="container mt-4">
     <div class="alert alert-danger" id="errorPanel">
-        <h2 id="errorTitle" th:text="${errorTitle ?: 'Произошла ошибка'}">
+        <h2 id="errorTitle"
+            th:text="${errorTitle != null ? errorTitle : 'Произошла ошибка'}">
             Произошла ошибка
         </h2>
 
-        <p id="errorMessage" th:text="${errorMessage ?: message ?: 'Неизвестная ошибка'}">
+        <p id="errorMessage"
+           th:text="${errorMessage != null ? errorMessage : (message != null ? message : 'Неизвестная ошибка')}">
             Неизвестная ошибка
         </p>
 
-        <p class="text-muted" th:if="${path != null}">
-            Страница: <span th:text="${path}"></span>
+        <p class="text-muted mb-1" th:if="${path != null}">
+            Страница:
+            <span id="errorPath" th:text="${path}"></span>
         </p>
 
-        <details th:if="${details != null}">
+        <details class="mt-2" th:if="${details != null}">
             <summary>Подробности</summary>
-            <pre th:text="${details}"></pre>
+            <pre class="mt-2 mb-0" id="errorDetails" th:text="${details}"></pre>
         </details>
+    </div>
 
-        <a class="btn btn-primary mt-3" th:href="@{/}">На главную</a>
-        <button class="btn btn-outline-secondary mt-3" onclick="history.back()">Назад</button>
+    <div class="d-flex gap-2">
+        <a class="btn btn-primary" id="goHomeButton" th:href="@{/}">На главную</a>
+        <button class="btn btn-outline-secondary" id="goBackButton" type="button" onclick="history.back()">
+            Назад
+        </button>
     </div>
 </main>
 </body>
