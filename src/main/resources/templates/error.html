@@ -7,10 +7,28 @@
 </head>
 <body>
 <div th:replace="~{fragments/layout :: navbar}"></div>
+
 <main class="container mt-4">
     <div class="alert alert-danger" id="errorPanel">
-        <h2 id="errorTitle">Произошла ошибка</h2>
-        <p id="errorMessage" th:text="${errorMessage}">Неизвестная ошибка</p>
+        <h2 id="errorTitle" th:text="${errorTitle ?: 'Произошла ошибка'}">
+            Произошла ошибка
+        </h2>
+
+        <p id="errorMessage" th:text="${errorMessage ?: message ?: 'Неизвестная ошибка'}">
+            Неизвестная ошибка
+        </p>
+
+        <p class="text-muted" th:if="${path != null}">
+            Страница: <span th:text="${path}"></span>
+        </p>
+
+        <details th:if="${details != null}">
+            <summary>Подробности</summary>
+            <pre th:text="${details}"></pre>
+        </details>
+
+        <a class="btn btn-primary mt-3" th:href="@{/}">На главную</a>
+        <button class="btn btn-outline-secondary mt-3" onclick="history.back()">Назад</button>
     </div>
 </main>
 </body>
