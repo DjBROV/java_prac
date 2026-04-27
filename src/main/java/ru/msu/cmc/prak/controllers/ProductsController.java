@@ -34,8 +34,8 @@ public class ProductsController {
                        @RequestParam(required = false) String maxStorageDays,
                        @RequestParam(required = false) Boolean large,
                        Model model) {
-        Duration minStorageLife = parseDays(minStorageDays);
-        Duration maxStorageLife = parseDays(maxStorageDays);
+        Duration minStorageLife = ControllerUtils.parseDaysOrNull(minStorageDays, "Минимальный срок хранения");
+        Duration maxStorageLife = ControllerUtils.parseDaysOrNull(maxStorageDays, "Максимальный срок хранения");
 
         if (minStorageLife != null && maxStorageLife != null && minStorageLife.compareTo(maxStorageLife) > 0) {
             throw new BadRequestException("Минимальный срок хранения не может быть больше максимального");
@@ -115,10 +115,7 @@ public class ProductsController {
                        @RequestParam(required = false, name = "product_size") SizeType size,
                        @RequestParam(required = false) Integer unitsForOne,
                        @RequestParam(required = false) String storageLifeDays) {
-        ProductCategories category = categoriesDAO.getById(categoryId);
-        if (category == null) {
-            throw new EntityNotFoundException("Категория с id=" + categoryId + " не найдена");
-        }
+        ProductCategories category = getCategoryOrThrow(categoryId);
 
         if (id != null) {
             getProductOrThrow(id);
@@ -136,7 +133,7 @@ public class ProductsController {
         entity.setUnit(unit);
         entity.setProduct_size(size);
         entity.setUnitsForOne(unitsForOne);
-        entity.setStorageLife(parseDays(storageLifeDays));
+        entity.setStorageLife(ControllerUtils.parseDaysOrNull(storageLifeDays, "Срок хранения"));
 
         if (id == null) {
             productsDAO.save(entity);
@@ -175,25 +172,17 @@ public class ProductsController {
         return product;
     }
 
+    private ProductCategories getCategoryOrThrow(Long id) {
+        ProductCategories category = categoriesDAO.getById(id);
+        if (category == null) {
+            throw new EntityNotFoundException("Категория с id=" + id + " не найдена");
+        }
+        return category;
+    }
+
     private void addProductFormAttributes(Model model) {
         model.addAttribute("categories", categoriesDAO.getAll());
         model.addAttribute("units", UnitsType.values());
         model.addAttribute("sizes", SizeType.values());
-    }
-
-    private Duration parseDays(String days) {
-        if (days == null || days.isBlank()) {
-            return null;
-        }
-
-        try {
-            long parsedDays = Long.parseLong(days.trim());
-            if (parsedDays < 0) {
-                throw new BadRequestException("Срок хранения не может быть отрицательным");
-            }
-            return Duration.ofDays(parsedDays);
-        } catch (NumberFormatException e) {
-            throw new BadRequestException("Срок хранения должен быть числом дней");
-        }
     }
 }

@@ -3,6 +3,7 @@ package ru.msu.cmc.prak.controllers;
 import ru.msu.cmc.prak.controllers.exceptions.BadRequestException;
 import ru.msu.cmc.prak.models.CommonEntity;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Collection;
@@ -62,10 +63,25 @@ public final class ControllerUtils {
         }
     }
 
+    public static Duration parseDaysOrNull(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        try {
+            long days = Long.parseLong(value.trim());
+            if (days < 0) {
+                throw new BadRequestException(fieldName + " не может быть отрицательным");
+            }
+            return Duration.ofDays(days);
+        } catch (NumberFormatException e) {
+            throw new BadRequestException(fieldName + " должен быть числом дней");
+        }
+    }
+
     public static Long nextId(Collection<? extends CommonEntity<Long>> entities, long fallbackStart) {
         return entities.stream()
                 .map(CommonEntity::getId)
-                .filter(id -> id != null)
                 .max(Long::compareTo)
                 .orElse(fallbackStart) + 1;
     }
