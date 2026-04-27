@@ -1,14 +1,69 @@
-<!doctype html><html lang="ru" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><title>Заказ</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"></head><body>
+<!doctype html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Заказ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
 <div th:replace="~{fragments/layout :: navbar}"></div>
-<main class="container mt-3"><h2>Заказ #<span th:text="${order.id}"></span></h2>
+
+<main class="container mt-3">
+    <h2>Заказ #<span th:text="${order.id}"></span></h2>
+
     <ul class="list-group mb-3">
-        <li class="list-group-item">Товар: <span th:text="${order.product.name}"></span></li>
-        <li class="list-group-item">Количество: <span th:text="${order.amount}"></span></li>
-        <li class="list-group-item">Время: <span th:text="${order.time}"></span></li>
-        <li class="list-group-item">Потребитель: <a th:href="@{/consumers/{id}(id=${consumer.id})}" th:text="${consumer.name}"></a></li>
-        <li class="list-group-item">Статус: <span th:text="${order.completed ? 'Выполнен' : 'Не выполнен'}"></span></li>
+        <li class="list-group-item">
+            Товар:
+            <span th:text="${order.product != null ? order.product.name : '-'}"></span>
+        </li>
+        <li class="list-group-item">
+            Количество:
+            <span th:text="${order.amount}"></span>
+        </li>
+        <li class="list-group-item">
+            Время:
+            <span th:text="${order.time != null ? #temporals.format(order.time, 'dd.MM.yyyy HH:mm') : '-'}"></span>
+        </li>
+        <li class="list-group-item">
+            Потребитель:
+            <a th:if="${consumer != null}"
+               th:href="@{/consumers/{id}(id=${consumer.id})}"
+               th:text="${consumer.name}">
+            </a>
+            <span th:if="${consumer == null}">-</span>
+        </li>
+        <li class="list-group-item">
+            Статус:
+            <span th:text="${order.completed ? 'Выполнен' : 'Не выполнен'}"></span>
+        </li>
     </ul>
-    <form method="post" th:if="${!order.completed}" th:action="@{/orders/{id}/complete(id=${order.id})}"><button class="btn btn-primary">Выполнить заказ</button></form>
+
+    <form method="post"
+          th:if="${!order.completed}"
+          th:action="@{/orders/{id}/complete(id=${order.id})}">
+        <button class="btn btn-primary" type="submit">Выполнить заказ</button>
+    </form>
+
     <h4 class="mt-4">Зарезервированные товарные единицы</h4>
-    <table class="table table-sm"><thead><tr><th>ID</th><th>Количество</th><th>Полка</th></tr></thead><tbody><tr th:each="u:${units}"><td th:text="${u.id}"></td><td th:text="${u.amount}"></td><td th:text="${u.shelf != null ? (u.shelf.roomNum + '/' + u.shelf.id) : '-'}"></td></tr></tbody></table>
-</main></body></html>
+
+    <table class="table table-sm">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Количество</th>
+            <th>Полка</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="u:${units}">
+            <td th:text="${u.id}"></td>
+            <td th:text="${u.amount}"></td>
+            <td th:text="${u.shelf != null ? (u.shelf.roomNum + '/' + u.shelf.id) : '-'}"></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <a class="btn btn-outline-dark mt-2" th:href="@{/orders}">К списку заказов</a>
+</main>
+</body>
+</html>

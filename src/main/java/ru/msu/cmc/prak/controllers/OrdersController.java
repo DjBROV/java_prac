@@ -6,6 +6,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import ru.msu.cmc.prak.DAO.*;
 import ru.msu.cmc.prak.controllers.exceptions.BadRequestException;
+import ru.msu.cmc.prak.controllers.exceptions.BusinessRuleException;
 import ru.msu.cmc.prak.controllers.exceptions.EntityNotFoundException;
 import ru.msu.cmc.prak.models.*;
 
@@ -74,6 +75,10 @@ public class OrdersController {
     public String editForm(@PathVariable Long id, Model model) {
         Orders order = getOrderOrThrow(id);
 
+        if (order.isCompleted()) {
+            throw new BusinessRuleException("Нельзя редактировать выполненный заказ");
+        }
+
         model.addAttribute("order", order);
         addOrderFormAttributes(model);
         return "orders/form";
@@ -102,12 +107,16 @@ public class OrdersController {
                     "Количество товара в заказе должно быть положительным");
         }
 
-        Orders order = buildOrder(id, consumer, product, amount, time);
-
         Orders existing = null;
         if (id != null) {
             existing = getOrderOrThrow(id);
+
+            if (existing.isCompleted()) {
+                throw new BusinessRuleException("Нельзя редактировать выполненный заказ");
+            }
         }
+
+        Orders order = buildOrder(id, consumer, product, amount, time);
 
         BigDecimal available = getAvailableAmountForOrder(existing, productId);
         BigDecimal required = BigDecimal.valueOf(amount.longValue());
@@ -124,17 +133,13 @@ public class OrdersController {
             List<ProductUnits> freeUnits = getFreeUnitsForProduct(productId);
             reserveUnitsForOrder(order, freeUnits, required);
         } else {
-            if (!existing.isCompleted()) {
-                releaseReservation(existing);
-            }
+            releaseReservation(existing);
 
-            order.setCompleted(existing.isCompleted());
+            order.setCompleted(false);
             ordersDAO.update(order);
 
-            if (!order.isCompleted()) {
-                List<ProductUnits> freeUnits = getFreeUnitsForProduct(productId);
-                reserveUnitsForOrder(order, freeUnits, required);
-            }
+            List<ProductUnits> freeUnits = getFreeUnitsForProduct(productId);
+            reserveUnitsForOrder(order, freeUnits, required);
         }
 
         return "redirect:/orders";
@@ -143,6 +148,10 @@ public class OrdersController {
     @PostMapping("/{id}/complete")
     public String complete(@PathVariable Long id) {
         Orders order = getOrderOrThrow(id);
+
+        if (order.isCompleted()) {
+            throw new BusinessRuleException("Заказ уже выполнен");
+        }
 
         order.setCompleted(true);
         ordersDAO.update(order);

@@ -124,10 +124,14 @@ public class ProductsController {
             getProductOrThrow(id);
         }
 
+        if (unitsForOne != null && unitsForOne <= 0) {
+            throw new BadRequestException("Количество единиц за одну позицию должно быть положительным");
+        }
+
         Products entity = new Products();
         entity.setId(id == null ? ControllerUtils.nextId(new ArrayList<>(productsDAO.getAll()), 1000) : id);
         entity.setCategory(category);
-        entity.setName(ControllerUtils.blankToNull(name));
+        entity.setName(ControllerUtils.requireText(name, "Наименование"));
         entity.setDescription(ControllerUtils.blankToNull(description));
         entity.setUnit(unit);
         entity.setProduct_size(size);

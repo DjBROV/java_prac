@@ -14,7 +14,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @Controller
@@ -80,6 +79,10 @@ public class SuppliesController {
     public String editForm(@PathVariable Long id, Model model) {
         Supplies supply = getSupplyOrThrow(id);
 
+        if (supply.isCompleted()) {
+            throw new BusinessRuleException("Нельзя редактировать выполненную поставку");
+        }
+
         model.addAttribute("supply", supply);
         addSupplyFormAttributes(model);
         return "supplies/form";
@@ -108,20 +111,17 @@ public class SuppliesController {
                     "Количество товара в поставке должно быть положительным");
         }
 
-        Supplies supply = buildSupply(id, provider, product, amount, time);
         Supplies existing = null;
-
         if (id != null) {
             existing = getSupplyOrThrow(id);
-            supply.setCompleted(existing.isCompleted());
 
             if (existing.isCompleted()) {
-                suppliesDAO.update(supply);
-                return "redirect:/supplies";
+                throw new BusinessRuleException("Нельзя редактировать выполненную поставку");
             }
-        } else {
-            supply.setCompleted(false);
         }
+
+        Supplies supply = buildSupply(id, provider, product, amount, time);
+        supply.setCompleted(false);
 
         int requiredWorkload = calcRequiredWorkload(product, amount);
         ShelfsWorkload selectedShelf = findShelfForSupply(existing, requiredWorkload);
@@ -152,6 +152,10 @@ public class SuppliesController {
     @PostMapping("/{id}/complete")
     public String complete(@PathVariable Long id) {
         Supplies supply = getSupplyOrThrow(id);
+
+        if (supply.isCompleted()) {
+            throw new BusinessRuleException("Поставка уже выполнена");
+        }
 
         supply.setCompleted(true);
         suppliesDAO.update(supply);

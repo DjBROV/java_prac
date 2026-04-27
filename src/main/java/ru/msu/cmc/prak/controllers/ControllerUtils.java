@@ -18,6 +18,14 @@ public final class ControllerUtils {
         return value.trim();
     }
 
+    public static String requireText(String value, String fieldName) {
+        String normalized = blankToNull(value);
+        if (normalized == null) {
+            throw new BadRequestException("Поле '" + fieldName + "' обязательно для заполнения");
+        }
+        return normalized;
+    }
+
     public static Long parseLongOrNull(String value) {
         if (value == null || value.isBlank()) {
             return null;

@@ -68,10 +68,10 @@ public class ConsumersController {
                        @RequestParam(required = false) String address) {
         Consumers entity = new Consumers();
         entity.setId(id == null ? ControllerUtils.nextId(new ArrayList<>(consumersDAO.getAll()), 100) : id);
-        entity.setName(ControllerUtils.blankToNull(name));
+        entity.setName(ControllerUtils.requireText(name, "Наименование"));
         entity.setDescription(ControllerUtils.blankToNull(description));
-        entity.setPhoneNum(ControllerUtils.blankToNull(phoneNum));
-        entity.setEmail(ControllerUtils.blankToNull(email));
+        entity.setPhoneNum(ControllerUtils.requireText(phoneNum, "Телефон"));
+        entity.setEmail(ControllerUtils.requireText(email, "Email"));
         entity.setAddress(ControllerUtils.blankToNull(address));
 
         if (id == null) {

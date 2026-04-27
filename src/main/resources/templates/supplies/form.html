@@ -65,22 +65,14 @@
                    id="time"
                    type="datetime-local"
                    name="time"
-                   th:value="${supply.time}"
+                   th:value="${supply.time != null ? #temporals.format(supply.time, 'yyyy-MM-dd''T''HH:mm') : ''}"
                    required>
         </div>
 
         <div class="d-flex gap-2 mt-2">
-            <button class="btn btn-primary" id="saveSupplyButton" type="submit">
-                Сохранить
-            </button>
-
-            <button class="btn btn-outline-secondary" id="resetSupplyButton" type="reset">
-                Отмена
-            </button>
-
-            <a class="btn btn-outline-dark" id="backToSuppliesButton" th:href="@{/supplies}">
-                К списку поставок
-            </a>
+            <button class="btn btn-primary" id="saveSupplyButton" type="submit">Сохранить</button>
+            <button class="btn btn-outline-secondary" id="resetSupplyButton" type="reset">Отмена</button>
+            <a class="btn btn-outline-dark" id="backToSuppliesButton" th:href="@{/supplies}">К списку поставок</a>
         </div>
     </form>
 </main>

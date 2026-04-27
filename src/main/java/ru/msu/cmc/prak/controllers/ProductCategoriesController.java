@@ -59,7 +59,7 @@ public class ProductCategoriesController {
                        @RequestParam String name) {
         ProductCategories entity = new ProductCategories();
         entity.setId(id == null ? ControllerUtils.nextId(new ArrayList<>(categoriesDAO.getAll()), 10) : id);
-        entity.setName(ControllerUtils.blankToNull(name));
+        entity.setName(ControllerUtils.requireText(name, "Наименование"));
 
         if (id == null) {
             categoriesDAO.save(entity);

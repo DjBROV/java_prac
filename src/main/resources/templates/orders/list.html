@@ -26,7 +26,7 @@
             </select>
         </div>
         <div class="col-auto">
-            <button class="btn btn-primary" id="searchOrdersButton">Поиск</button>
+            <button class="btn btn-primary" id="searchOrdersButton" type="submit">Поиск</button>
             <a class="btn btn-success" id="addOrderButton" th:href="@{/orders/new}">+</a>
         </div>
     </form>
@@ -46,16 +46,25 @@
         <tbody>
         <tr th:each="o: ${orders}">
             <td th:text="${o.id}"></td>
-            <td th:text="${o.product.name}"></td>
-            <td th:text="${o.consumer.name}"></td>
+            <td th:text="${o.product != null ? o.product.name : '-'}"></td>
+            <td th:text="${o.consumer != null ? o.consumer.name : '-'}"></td>
             <td th:text="${o.amount}"></td>
-            <td th:text="${o.time}"></td>
+            <td th:text="${o.time != null ? #temporals.format(o.time, 'dd.MM.yyyy HH:mm') : '-'}"></td>
             <td th:text="${o.completed ? 'Выполнен' : 'Не выполнен'}"></td>
             <td>
-                <a class="btn btn-sm btn-outline-primary" th:href="@{/orders/{id}(id=${o.id})}">Страница</a>
-                <a class="btn btn-sm btn-outline-secondary" th:href="@{/orders/{id}/edit(id=${o.id})}">Изменить</a>
+                <a class="btn btn-sm btn-outline-primary"
+                   th:href="@{/orders/{id}(id=${o.id})}">
+                    Страница
+                </a>
+
+                <a class="btn btn-sm btn-outline-secondary"
+                   th:if="${!o.completed}"
+                   th:href="@{/orders/{id}/edit(id=${o.id})}">
+                    Изменить
+                </a>
+
                 <form class="d-inline" method="post" th:action="@{/orders/{id}/delete(id=${o.id})}">
-                    <button class="btn btn-sm btn-outline-danger">Удалить</button>
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
                 </form>
             </td>
         </tr>

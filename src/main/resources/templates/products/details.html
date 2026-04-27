@@ -15,14 +15,15 @@
         <div class="card-body">
             <p><b>ID:</b> <span id="productIdValue" th:text="${product.id}"></span></p>
             <p><b>Категория:</b> <span th:text="${product.category != null ? product.category.name : '-'}"></span></p>
-            <p><b>Описание:</b> <span th:text="${product.description}"></span></p>
-            <p><b>Срок хранения:</b> <span th:text="${product.storageLife != null ? product.storageLife : '-'}"></span></p>
+            <p><b>Описание:</b> <span th:text="${product.description != null ? product.description : '-'}"></span></p>
+            <p><b>Срок хранения:</b>
+                <span th:text="${product.storageLife != null ? product.storageLife.toDays() + ' дней' : '-'}"></span>
+            </p>
             <p><b>Габариты:</b> <span th:text="${product.product_size != null ? product.product_size : '-'}"></span></p>
             <p><b>Ед. изм.:</b> <span th:text="${product.unit != null ? product.unit : '-'}"></span></p>
         </div>
     </div>
 
-    <!-- ДОБАВЛЕНО -->
     <h4>Фильтр товарных единиц</h4>
     <form class="row g-2 mb-3" method="get" th:action="@{/products/{id}(id=${product.id})}" id="productUnitsFilterForm">
         <div class="col-md-2">
@@ -63,17 +64,25 @@
             <td th:text="${u.amount}"></td>
             <td th:text="${u.shelf != null ? (u.shelf.roomNum + '/' + u.shelf.id) : '-'}"></td>
             <td>
-                <a th:if="${u.supply != null}" th:href="@{/supplies/{id}(id=${u.supply.id})}" th:text="${u.supply.id}"></a>
+                <a th:if="${u.supply != null}"
+                   th:href="@{/supplies/{id}(id=${u.supply.id})}"
+                   th:text="${u.supply.id}">
+                </a>
                 <span th:if="${u.supply == null}">-</span>
             </td>
             <td>
-                <a th:if="${u.order != null}" th:href="@{/orders/{id}(id=${u.order.id})}" th:text="${u.order.id}"></a>
+                <a th:if="${u.order != null}"
+                   th:href="@{/orders/{id}(id=${u.order.id})}"
+                   th:text="${u.order.id}">
+                </a>
                 <span th:if="${u.order == null}">-</span>
             </td>
             <td th:text="${u.order != null ? 'Да' : 'Нет'}"></td>
         </tr>
         </tbody>
     </table>
+
+    <a class="btn btn-outline-dark mt-2" th:href="@{/products}">К списку товаров</a>
 </main>
 </body>
 </html>

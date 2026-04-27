@@ -65,22 +65,14 @@
                    id="time"
                    type="datetime-local"
                    name="time"
-                   th:value="${order.time}"
+                   th:value="${order.time != null ? #temporals.format(order.time, 'yyyy-MM-dd''T''HH:mm') : ''}"
                    required>
         </div>
 
         <div class="d-flex gap-2 mt-2">
-            <button class="btn btn-primary" id="saveOrderButton" type="submit">
-                Сохранить
-            </button>
-
-            <button class="btn btn-outline-secondary" id="resetOrderButton" type="reset">
-                Отмена
-            </button>
-
-            <a class="btn btn-outline-dark" id="backToOrdersButton" th:href="@{/orders}">
-                К списку заказов
-            </a>
+            <button class="btn btn-primary" id="saveOrderButton" type="submit">Сохранить</button>
+            <button class="btn btn-outline-secondary" id="resetOrderButton" type="reset">Отмена</button>
+            <a class="btn btn-outline-dark" id="backToOrdersButton" th:href="@{/orders}">К списку заказов</a>
         </div>
     </form>
 </main>
